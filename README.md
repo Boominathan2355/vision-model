@@ -2,9 +2,12 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/pytorch-2.1.0-brightgreen.svg)](https://pytorch.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
+[![Private Repository](https://img.shields.io/badge/Repository-Private-orange.svg)](#)
 
 > A sophisticated multimodal AI model combining vision and language understanding with advanced reasoning capabilities. Thiran offers two variants: **Pro** (256M parameters) for maximum performance and **Lite** (21.5M parameters) for efficient deployment.
+>
+> **⚠️ PROPRIETARY SOFTWARE** - This is a private repository. Unauthorized access, reproduction, or distribution is strictly prohibited.
 
 ## 🎯 Features
 
@@ -28,9 +31,9 @@
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/thiran.git
-cd thiran
+# Clone the private repository (requires access)
+git clone https://github.com/Boominathan2355/vision-model.git
+cd vision-model
 
 # Create virtual environment
 python -m venv .venv
@@ -44,6 +47,8 @@ source .venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 ```
+
+**Note:** This is a private repository. Access credentials are required for cloning.
 
 ### Basic Usage
 
@@ -266,17 +271,27 @@ model = ThiranModelBuilder.build_lite_model(vocab_size)
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under a **Proprietary License** - see the [LICENSE](LICENSE) file for details.
 
-## 👥 Contributing
+**⚠️ IMPORTANT:** This software contains proprietary and confidential information. 
+- Unauthorized use, reproduction, or distribution is strictly prohibited
+- All intellectual property rights are reserved
+- Access is restricted to authorized personnel only
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+For licensing inquiries, contact: support@thiran.ai
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+## 🔐 Security & Confidentiality
+
+- **Classification**: PROPRIETARY
+- **Access Control**: Private repository with restricted access
+- **Data Protection**: All source code and models are confidential
+- **Usage Rights**: Internal use only unless explicitly authorized
+
+## 👥 Access & Contributing
+
+This is a **private repository**. Access is restricted to authorized team members only.
+
+For contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md) (internal use only)
 
 ## 📞 Contact & Support
 
@@ -310,5 +325,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ---
 
 **Made with ❤️ by the Thiran team**
-#   v i s i o n - m o d e l  
+#   v i s i o n - m o d e l 
+ 
  
