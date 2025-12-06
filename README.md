@@ -1,32 +1,36 @@
 # Thiran - Multimodal Vision-Language Model
 
+<div align="center">
+
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/pytorch-2.1.0-brightgreen.svg)](https://pytorch.org/)
 [![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![Private Repository](https://img.shields.io/badge/Repository-Private-orange.svg)](#)
 
+</div>
+
 > A sophisticated multimodal AI model combining vision and language understanding with advanced reasoning capabilities. Thiran offers two variants: **Pro** (256M parameters) for maximum performance and **Lite** (21.5M parameters) for efficient deployment.
->
+
 > **⚠️ PROPRIETARY SOFTWARE** - This is a private repository. Unauthorized access, reproduction, or distribution is strictly prohibited.
 
-## 🎯 Features
+## Features
 
-- **Dual Architecture**: Pro and Lite model variants for different use cases
-- **Multimodal Learning**: Seamless integration of visual and textual information
-- **Advanced Reasoning**: Multi-step reasoning module for complex analysis
-- **Custom Tokenizer**: Specialized vocabulary building for domain-specific tasks
-- **Indic Language Support**: Pre-trained on Indic Instruct dataset with English optimization
-- **Vision-Language Fusion**: Sophisticated fusion mechanisms for multimodal understanding
-- **Image Reconstruction**: Capability to reconstruct visual representations
+- **Dual Architecture** - Pro and Lite model variants for different use cases
+- **Multimodal Learning** - Seamless integration of visual and textual information
+- **Advanced Reasoning** - Multi-step reasoning module for complex analysis
+- **Custom Tokenizer** - Specialized vocabulary building for domain-specific tasks
+- **Indic Language Support** - Pre-trained on Indic Instruct dataset with English optimization
+- **Vision-Language Fusion** - Sophisticated fusion mechanisms for multimodal understanding
+- **Image Reconstruction** - Capability to reconstruct visual representations
 
-## 📋 Requirements
+## Requirements
 
 - Python 3.10+
 - PyTorch 2.1.0
 - CUDA 11.8+ (optional, for GPU acceleration)
 - 8GB+ RAM (16GB+ recommended for Pro model)
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -48,7 +52,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**Note:** This is a private repository. Access credentials are required for cloning.
+> **Note:** This is a private repository. Access credentials are required for cloning.
 
 ### Basic Usage
 
@@ -87,9 +91,10 @@ print(f"Classification logits: {outputs['logits'].shape}")
 print(f"Reasoning logits: {outputs['reasoning_logits'].shape}")
 ```
 
-## 📚 Model Architecture
+## Model Architecture
 
 ### Pro Model (256M parameters)
+
 - **Hidden Size**: 768
 - **Attention Heads**: 12
 - **Fusion Layers**: 6
@@ -97,13 +102,14 @@ print(f"Reasoning logits: {outputs['reasoning_logits'].shape}")
 - **Best for**: Maximum performance, research, production systems
 
 ### Lite Model (21.5M parameters)
+
 - **Hidden Size**: 384
 - **Attention Heads**: 8
 - **Fusion Layers**: 3
 - **Reasoning Steps**: 2
 - **Best for**: Edge devices, mobile, resource-constrained environments
 
-## 🏋️ Training
+## Training
 
 ### Training with Indic Instruct Dataset
 
@@ -112,6 +118,7 @@ python train_final.py
 ```
 
 **Configuration:**
+
 - Dataset: Indic Instruct (English, 500 samples)
 - Batch Size: 4
 - Learning Rate: 2e-4
@@ -121,6 +128,7 @@ python train_final.py
 ### Custom Training
 
 Edit `train_final.py` to customize:
+
 - `max_samples`: Number of training samples
 - `batch_size`: Batch size for training
 - `num_epochs`: Number of training epochs
@@ -132,50 +140,54 @@ config.num_epochs = 5
 config.learning_rate = 1e-4
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 thiran/
-├── architecture.py           # Model architecture definitions
-├── builder.py               # Model builder and utilities
-├── tokenizer.py             # Custom tokenizer implementation
-├── model.py                 # Model definitions
-├── main.py                  # Example inference script
-├── train_final.py           # Training script with Indic dataset
-├── train_indic_direct.py    # Alternative training script
-├── train_with_indic_data.py # Dataset integration script
-├── custom_tokenizer.json    # Saved tokenizer
-├── thiran_pro_model.pt      # Saved Pro model
-├── thiran_lite_model.pt     # Saved Lite model
-├── requirements.txt         # Python dependencies
-├── .gitignore              # Git ignore rules
-└── README.md               # This file
+├── architecture.py              # Model architecture definitions
+├── builder.py                   # Model builder and utilities
+├── tokenizer.py                 # Custom tokenizer implementation
+├── model.py                     # Model definitions
+├── main.py                      # Example inference script
+├── train_final.py               # Training script with Indic dataset
+├── train_indic_direct.py        # Alternative training script
+├── train_with_indic_data.py     # Dataset integration script
+├── custom_tokenizer.json        # Saved tokenizer
+├── thiran_pro_model.pt          # Saved Pro model
+├── thiran_lite_model.pt         # Saved Lite model
+├── requirements.txt             # Python dependencies
+├── .gitignore                   # Git ignore rules
+└── README.md                    # This file
 ```
 
-## 🔧 Key Components
+## Key Components
 
 ### Architecture (`architecture.py`)
-- **ImagePreprocessor**: Image normalization and preprocessing
-- **ThinkingLayer**: Multi-head attention with FFN for reasoning
-- **ReasoningModule**: Multi-step reasoning with cross-attention
-- **MultimodalEncoder**: Vision and language encoding
-- **FusionModule**: Multimodal fusion mechanisms
-- **ThiranModel**: Main model class
+
+- **ImagePreprocessor** - Image normalization and preprocessing
+- **ThinkingLayer** - Multi-head attention with FFN for reasoning
+- **ReasoningModule** - Multi-step reasoning with cross-attention
+- **MultimodalEncoder** - Vision and language encoding
+- **FusionModule** - Multimodal fusion mechanisms
+- **ThiranModel** - Main model class
 
 ### Builder (`builder.py`)
-- **ThiranModelBuilder**: Builds Pro and Lite variants
+
+- **ThiranModelBuilder** - Builds Pro and Lite variants
 - Model initialization and weight management
 - Save/load utilities
 
 ### Tokenizer (`tokenizer.py`)
-- **CustomTokenizer**: Domain-specific tokenization
+
+- **CustomTokenizer** - Domain-specific tokenization
 - Vocabulary building from corpus
 - Token encoding/decoding
 - Special tokens for reasoning
 
-## 📊 Model Outputs
+## Model Outputs
 
 The model returns a dictionary with:
+
 ```python
 {
     'logits': torch.Tensor,              # Classification logits
@@ -190,9 +202,10 @@ The model returns a dictionary with:
 }
 ```
 
-## 🎓 Dataset
+## Dataset
 
 ### Indic Instruct Dataset
+
 - **Source**: `ai4bharat/indic-instruct-data-v0.1`
 - **Configuration**: English only (anudesh split)
 - **Format**: Parquet files
@@ -200,20 +213,22 @@ The model returns a dictionary with:
 - **Authentication**: Hugging Face token required
 
 To use your own token:
+
 ```python
 hf_token = "hf_your_token_here"
 dataset = IndicInstructDataset(tokenizer, hf_token=hf_token)
 ```
 
-## 🔐 Security
+## Security
 
-- **Hugging Face Token**: Never commit tokens to version control
+- **Hugging Face Token** - Never commit tokens to version control
 - Use environment variables for sensitive credentials
 - See `.gitignore` for files excluded from Git
 
-## 💾 Model Persistence
+## Model Persistence
 
 ### Saving Models
+
 ```python
 from builder import save_model
 
@@ -222,27 +237,31 @@ tokenizer.save('my_tokenizer.json')
 ```
 
 ### Loading Models
+
 ```python
 from builder import load_model
 
 model = load_model('my_model.pt', tokenizer)
 ```
 
-## 🚀 Performance
+## Performance
 
 ### Inference Speed (CPU)
+
 - Pro Model: ~2-5 seconds per sample
 - Lite Model: ~0.5-1 second per sample
 
 ### Memory Usage
+
 - Pro Model: ~1GB
 - Lite Model: ~200MB
 
-*Note: Times vary based on hardware and sequence length*
+> **Note**: Times vary based on hardware and sequence length
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### CUDA Issues
+
 ```bash
 # Check CUDA availability
 python -c "import torch; print(torch.cuda.is_available())"
@@ -252,6 +271,7 @@ CUDA_VISIBLE_DEVICES="" python train_final.py
 ```
 
 ### Dataset Loading
+
 ```bash
 # Update Hugging Face token
 huggingface-cli login
@@ -261,6 +281,7 @@ set HF_TOKEN=your_token_here
 ```
 
 ### Memory Issues
+
 ```python
 # Reduce batch size
 config.batch_size = 2
@@ -269,53 +290,57 @@ config.batch_size = 2
 model = ThiranModelBuilder.build_lite_model(vocab_size)
 ```
 
-## 📝 License
+## License
 
 This project is licensed under a **Proprietary License** - see the [LICENSE](LICENSE) file for details.
 
-**⚠️ IMPORTANT:** This software contains proprietary and confidential information. 
+**⚠️ IMPORTANT:**
+
+This software contains proprietary and confidential information.
+
 - Unauthorized use, reproduction, or distribution is strictly prohibited
 - All intellectual property rights are reserved
 - Access is restricted to authorized personnel only
 
 For licensing inquiries, contact: support@thiran.ai
 
-## 🔐 Security & Confidentiality
+## Security & Confidentiality
 
 - **Classification**: PROPRIETARY
 - **Access Control**: Private repository with restricted access
 - **Data Protection**: All source code and models are confidential
 - **Usage Rights**: Internal use only unless explicitly authorized
 
-## 👥 Access & Contributing
+## Access & Contributing
 
 This is a **private repository**. Access is restricted to authorized team members only.
 
 For contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md) (internal use only)
 
-## 📞 Contact & Support
+## Contact & Support
 
 - **Issues**: GitHub Issues
 - **Email**: support@thiran.ai
 - **Documentation**: [Full Docs](./docs)
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built with PyTorch and Hugging Face transformers
 - Inspired by vision-language models like CLIP and BLIP
 - Dataset: ai4bharat/indic-instruct-data-v0.1
 - Thanks to the open-source community
 
-## 📚 References
+## References
 
 - Vaswani et al. (2017) - Attention Is All You Need
 - Dosovitskiy et al. (2020) - An Image is Worth 16x16 Words
 - Li et al. (2022) - BLIP: Bootstrapping Language-Image Pre-training
 - Radford et al. (2021) - Learning Transferable Visual Models From Natural Language Supervision (CLIP)
 
-## 📄 Changelog
+## Changelog
 
 ### [1.0.0] - 2025-12-06
+
 - Initial release
 - Pro and Lite model variants
 - Training with Indic Instruct dataset
@@ -324,7 +349,6 @@ For contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md) (internal us
 
 ---
 
-**Made with ❤️ by the Thiran team**
-#   v i s i o n - m o d e l 
+Made with ❤️ by the Thiran team
  
  
