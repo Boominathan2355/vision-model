@@ -1,12 +1,12 @@
 import torch
 from tokenizer import CustomTokenizer
 from architecture import ImagePreprocessor
-from builder import ThiranModelBuilder, save_model
+from builder import VelCoreModelBuilder, save_model
 
 # ==================== Example Usage ====================
 if __name__ == "__main__":
     print("\n" + "=" * 70)
-    print(" THIRAN MODEL - Building from Scratch with Custom Tokenizer")
+    print(" VELCORE MODEL - Building from Scratch with Custom Tokenizer")
     print("=" * 70)
     
     # Step 1: Create and build tokenizer
@@ -39,13 +39,13 @@ if __name__ == "__main__":
     print(f"  - Special tokens: {len(tokenizer.thinking_tokens)}")
     
     # Step 2: Build Pro model
-    print("\n[STEP 2] Building Thiran Pro Model from scratch...")
-    pro_model = ThiranModelBuilder.build_pro_model(len(tokenizer.vocab))
+    print("\n[STEP 2] Building VelCore Pro Model from scratch...")
+    pro_model = VelCoreModelBuilder.build_pro_model(len(tokenizer.vocab))
     pro_model.eval()
     
     # Step 3: Build Lite model
-    print("\n[STEP 3] Building Thiran Lite Model from scratch...")
-    lite_model = ThiranModelBuilder.build_lite_model(len(tokenizer.vocab))
+    print("\n[STEP 3] Building VelCore Lite Model from scratch...")
+    lite_model = VelCoreModelBuilder.build_lite_model(len(tokenizer.vocab))
     lite_model.eval()
     
     # Step 4: Prepare input
@@ -84,8 +84,8 @@ if __name__ == "__main__":
     
     # Step 6: Save models and tokenizer
     print("\n[STEP 6] Saving models and tokenizer...")
-    save_model(pro_model, tokenizer, 'thiran_pro_model.pt')
-    save_model(lite_model, tokenizer, 'thiran_lite_model.pt')
+    save_model(pro_model, tokenizer, 'VelCore-Pro.pt')
+    save_model(lite_model, tokenizer, 'VelCore-Lite.pt')
     tokenizer.save('custom_tokenizer.json')
     
     # Step 7: Test Lite model
@@ -99,5 +99,5 @@ if __name__ == "__main__":
     print(f"  - Total parameters: {sum(p.numel() for p in lite_model.parameters()):,}")
     
     print("\n" + "=" * 70)
-    print(" ✓ SUCCESS: Thiran models built and tested from scratch!")
+    print(" ✓ SUCCESS: VelCore models built and tested from scratch!")
     print("=" * 70 + "\n")

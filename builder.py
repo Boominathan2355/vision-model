@@ -1,17 +1,17 @@
 import torch
 import torch.nn as nn
-from architecture import ThiranModel
+from architecture import VelCoreModel
 
 # ==================== Model Builder ====================
-class ThiranModelBuilder:
-    """Builder for Thiran models"""
+class VelCoreModelBuilder:
+    """Builder for VelCore models"""
     @staticmethod
-    def build_pro_model(tokenizer_vocab_size: int) -> ThiranModel:
-        """Build pro version of Thiran model"""
-        model = ThiranModel(mode='pro', tokenizer_vocab_size=tokenizer_vocab_size)
+    def build_pro_model(tokenizer_vocab_size: int) -> VelCoreModel:
+        """Build pro version of VelCore model"""
+        model = VelCoreModel(mode='pro', tokenizer_vocab_size=tokenizer_vocab_size)
         
         # Initialize weights
-        model.apply(ThiranModelBuilder._init_weights)
+        model.apply(VelCoreModelBuilder._init_weights)
         
         print(f"✓ Pro Model built")
         print(f"  - Mode: Pro")
@@ -22,12 +22,12 @@ class ThiranModelBuilder:
         return model
     
     @staticmethod
-    def build_lite_model(tokenizer_vocab_size: int) -> ThiranModel:
-        """Build lite version of Thiran model"""
-        model = ThiranModel(mode='lite', tokenizer_vocab_size=tokenizer_vocab_size)
+    def build_lite_model(tokenizer_vocab_size: int) -> VelCoreModel:
+        """Build lite version of VelCore model"""
+        model = VelCoreModel(mode='lite', tokenizer_vocab_size=tokenizer_vocab_size)
         
         # Initialize weights
-        model.apply(ThiranModelBuilder._init_weights)
+        model.apply(VelCoreModelBuilder._init_weights)
         
         print(f"✓ Lite Model built")
         print(f"  - Mode: Lite")
@@ -47,7 +47,7 @@ class ThiranModelBuilder:
         elif isinstance(module, nn.Embedding):
             nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
-def save_model(model: ThiranModel, tokenizer, path: str = 'thiran_model.pt'):
+def save_model(model: VelCoreModel, tokenizer, path: str = 'VelCore.pt'):
     """Save model with configuration and weights"""
     save_data = {
         'model_state_dict': model.state_dict(),
@@ -65,7 +65,7 @@ def save_model(model: ThiranModel, tokenizer, path: str = 'thiran_model.pt'):
     print(f"  - Model weights: {len(save_data['model_weights'])} parameters")
     print(f"  - Tokenizer vocab: {len(tokenizer.vocab)} tokens")
 
-def load_model(path: str, tokenizer, mode: str = None) -> ThiranModel:
+def load_model(path: str, tokenizer, mode: str = None) -> VelCoreModel:
     """Load saved model with weights"""
     save_data = torch.load(path, map_location='cpu')
     
@@ -75,9 +75,9 @@ def load_model(path: str, tokenizer, mode: str = None) -> ThiranModel:
     
     # Build appropriate model
     if mode == 'pro':
-        model = ThiranModelBuilder.build_pro_model(vocab_size)
+        model = VelCoreModelBuilder.build_pro_model(vocab_size)
     else:
-        model = ThiranModelBuilder.build_lite_model(vocab_size)
+        model = VelCoreModelBuilder.build_lite_model(vocab_size)
     
     # Load weights from state dict
     model.load_state_dict(save_data['model_state_dict'])

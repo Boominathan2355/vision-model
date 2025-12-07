@@ -1,354 +1,169 @@
-# Thiran - Multimodal Vision-Language Model
+# VelCore - Multimodal Vision-Language Model
 
 <div align="center">
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/pytorch-2.1.0-brightgreen.svg)](https://pytorch.org/)
-[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
-[![Private Repository](https://img.shields.io/badge/Repository-Private-orange.svg)](#)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
 
-> A sophisticated multimodal AI model combining vision and language understanding with advanced reasoning capabilities. Thiran offers two variants: **Pro** (256M parameters) for maximum performance and **Lite** (21.5M parameters) for efficient deployment.
+> A multimodal AI model combining vision and language understanding with advanced reasoning and image generation capabilities. VelCore offers two variants: **Pro** (~254M parameters) and **Lite** (~24M parameters).
 
-> **⚠️ PROPRIETARY SOFTWARE** - This is a private repository. Unauthorized access, reproduction, or distribution is strictly prohibited.
+## ✨ Features
 
-## Features
+| Feature | Pro | Lite | Description |
+|---------|-----|------|-------------|
+| **Domain Classification** | ✅ | ✅ | Classifies into Math, Physics, Chemistry, Biology, CS, Engineering |
+| **Text Reasoning** | ✅ | ✅ | Generates reasoning/answer text from questions |
+| **Image Understanding** | ✅ | ✅ | Processes and understands 224×224 images |
+| **Multimodal Fusion** | ✅ | ✅ | Combines text + image for reasoning |
+| **Image Reconstruction** | ✅ | ❌ | Reconstructs input images |
+| **Image Generation** | ✅ | ❌ | Generates images from text prompts |
 
-- **Dual Architecture** - Pro and Lite model variants for different use cases
-- **Multimodal Learning** - Seamless integration of visual and textual information
-- **Advanced Reasoning** - Multi-step reasoning module for complex analysis
-- **Custom Tokenizer** - Specialized vocabulary building for domain-specific tasks
-- **Indic Language Support** - Pre-trained on Indic Instruct dataset with English optimization
-- **Vision-Language Fusion** - Sophisticated fusion mechanisms for multimodal understanding
-- **Image Reconstruction** - Capability to reconstruct visual representations
-
-## Requirements
+## 📋 Requirements
 
 - Python 3.10+
-- PyTorch 2.1.0
+- PyTorch 2.1.0+
 - CUDA 11.8+ (optional, for GPU acceleration)
 - 8GB+ RAM (16GB+ recommended for Pro model)
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Installation
 
 ```bash
-# Clone the private repository (requires access)
 git clone https://github.com/Boominathan2355/vision-model.git
 cd vision-model
-
-# Create virtual environment
 python -m venv .venv
-
-# Activate virtual environment
-# On Windows:
-.venv\Scripts\activate
-# On macOS/Linux:
-source .venv/bin/activate
-
-# Install dependencies
+.venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 ```
-
-> **Note:** This is a private repository. Access credentials are required for cloning.
 
 ### Basic Usage
 
 ```python
 import torch
 from tokenizer import CustomTokenizer
-from builder import ThiranModelBuilder
-from architecture import ImagePreprocessor
-
-# Initialize tokenizer
-tokenizer = CustomTokenizer(max_length=512)
-sample_texts = ["What is in this image?", "Analyze the visual content."]
-tokenizer.build_vocab(sample_texts, min_freq=1)
+from builder import VelCoreModelBuilder
 
 # Build model
-model = ThiranModelBuilder.build_pro_model(len(tokenizer.vocab))
-model.eval()
-
-# Prepare inputs
-text = "What is in this image?"
-text_tokens = tokenizer.encode(text)
-text_tensor = torch.tensor([text_tokens])
-
-image = torch.randn(1, 3, 224, 224)  # Dummy image tensor
+tokenizer = CustomTokenizer(max_length=512)
+tokenizer.build_vocab(["Sample text"], min_freq=1)
+model = VelCoreModelBuilder.build_pro_model(len(tokenizer.vocab))
 
 # Inference
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = model.to(device)
-text_tensor = text_tensor.to(device)
-image = image.to(device)
+text_tokens = tokenizer.encode("What is 2+2?")
+text_tensor = torch.tensor([text_tokens])
+image = torch.randn(1, 3, 224, 224)
 
 with torch.no_grad():
     outputs = model(text_tensor, image)
-    
-print(f"Classification logits: {outputs['logits'].shape}")
-print(f"Reasoning logits: {outputs['reasoning_logits'].shape}")
 ```
 
-## Model Architecture
-
-### Pro Model (256M parameters)
-
-- **Hidden Size**: 768
-- **Attention Heads**: 12
-- **Fusion Layers**: 6
-- **Reasoning Steps**: 4
-- **Best for**: Maximum performance, research, production systems
-
-### Lite Model (21.5M parameters)
-
-- **Hidden Size**: 384
-- **Attention Heads**: 8
-- **Fusion Layers**: 3
-- **Reasoning Steps**: 2
-- **Best for**: Edge devices, mobile, resource-constrained environments
-
-## Training
-
-### Training with Indic Instruct Dataset
-
-```bash
-python train_final.py
-```
-
-**Configuration:**
-
-- Dataset: Indic Instruct (English, 500 samples)
-- Batch Size: 4
-- Learning Rate: 2e-4
-- Epochs: 2
-- Optimizer: AdamW
-
-### Custom Training
-
-Edit `train_final.py` to customize:
-
-- `max_samples`: Number of training samples
-- `batch_size`: Batch size for training
-- `num_epochs`: Number of training epochs
-- `learning_rate`: Learning rate for optimizer
+### Image Generation (Pro Only)
 
 ```python
-config.batch_size = 8
-config.num_epochs = 5
-config.learning_rate = 1e-4
+# Generate image from text
+model = VelCoreModelBuilder.build_pro_model(vocab_size)
+text_tokens = tokenizer.encode("A beautiful sunset")
+text_tensor = torch.tensor([text_tokens])
+
+generated_image = model.generate_image(text_tensor)  # [1, 3, 224, 224]
 ```
 
-## Project Structure
+## 📊 Model Architecture
+
+| Spec | VelCore-Pro | VelCore-Lite |
+|------|-------------|--------------|
+| Hidden Size | 768 | 384 |
+| Attention Heads | 12 | 8 |
+| Fusion Layers | 6 | 3 |
+| Reasoning Steps | 4 | 2 |
+| Parameters | ~254M | ~24M |
+
+## 📁 Project Structure
 
 ```
-thiran/
-├── architecture.py              # Model architecture definitions
-├── builder.py                   # Model builder and utilities
-├── tokenizer.py                 # Custom tokenizer implementation
-├── model.py                     # Model definitions
-├── main.py                      # Example inference script
-├── train_final.py               # Training script with Indic dataset
-├── train_indic_direct.py        # Alternative training script
-├── train_with_indic_data.py     # Dataset integration script
-├── custom_tokenizer.json        # Saved tokenizer
-├── thiran_pro_model.pt          # Saved Pro model
-├── thiran_lite_model.pt         # Saved Lite model
-├── requirements.txt             # Python dependencies
-├── .gitignore                   # Git ignore rules
-└── README.md                    # This file
+VelCore/
+├── architecture.py       # Model architecture (VelCoreModel, ImageGenerator)
+├── builder.py            # Model builder and save/load utilities
+├── tokenizer.py          # Custom tokenizer implementation
+├── train_final.py        # Training on Turing-Open-Reasoning
+├── train_geometry.py     # Training on Geometry3K (real images)
+├── train_gsm8k.py        # Training on GSM8K math problems
+├── train_socratic.py     # Training on GSM8K Socratic
+├── ask_model.py          # Interactive Q&A script
+├── generate_image.py     # Text-to-image generation script
+├── evaluate_model.py     # Model evaluation script
+└── main.py               # Example usage script
 ```
 
-## Key Components
+## 🎯 Training Scripts
 
-### Architecture (`architecture.py`)
+| Script | Dataset | Samples | Description |
+|--------|---------|---------|-------------|
+| `train_final.py` | Turing-Open-Reasoning | 1000 | Multi-domain reasoning |
+| `train_geometry.py` | Geometry3K | 2000 | Real geometry diagram images |
+| `train_gsm8k.py` | GSM8K | 5000 | Math word problems |
+| `train_socratic.py` | GSM8K Socratic | 5000 | Socratic method reasoning |
 
-- **ImagePreprocessor** - Image normalization and preprocessing
-- **ThinkingLayer** - Multi-head attention with FFN for reasoning
-- **ReasoningModule** - Multi-step reasoning with cross-attention
-- **MultimodalEncoder** - Vision and language encoding
-- **FusionModule** - Multimodal fusion mechanisms
-- **ThiranModel** - Main model class
+```bash
+python train_final.py      # Train on reasoning dataset
+python train_geometry.py   # Train with real images
+```
 
-### Builder (`builder.py`)
+## 💡 Example Scripts
 
-- **ThiranModelBuilder** - Builds Pro and Lite variants
-- Model initialization and weight management
-- Save/load utilities
+```bash
+python ask_model.py        # Interactive Q&A
+python generate_image.py   # Generate images from text
+python evaluate_model.py   # Evaluate model performance
+```
 
-### Tokenizer (`tokenizer.py`)
-
-- **CustomTokenizer** - Domain-specific tokenization
-- Vocabulary building from corpus
-- Token encoding/decoding
-- Special tokens for reasoning
-
-## Model Outputs
-
-The model returns a dictionary with:
+## 📦 Model Outputs
 
 ```python
 {
-    'logits': torch.Tensor,              # Classification logits
-    'reasoning_logits': torch.Tensor,    # Reasoning output logits
+    'logits': Tensor,              # Classification logits [batch, 10]
+    'reasoning_logits': Tensor,    # Text generation logits [batch, seq, vocab]
     'features': {
-        'text_features': torch.Tensor,        # Text embeddings
-        'visual_features': torch.Tensor,      # Visual embeddings
-        'fused_features': torch.Tensor,       # Fused representations
-        'reasoned_features': torch.Tensor,    # Reasoned features
+        'text_features': Tensor,
+        'visual_features': Tensor,
+        'fused_features': Tensor,
+        'reasoned_features': Tensor
     },
-    'reconstructed_image': torch.Tensor  # Reconstructed image (Pro only)
+    'reconstructed_image': Tensor  # Pro only [batch, 150528]
 }
 ```
 
-## Dataset
-
-### Indic Instruct Dataset
-
-- **Source**: `ai4bharat/indic-instruct-data-v0.1`
-- **Configuration**: English only (anudesh split)
-- **Format**: Parquet files
-- **Size**: 5234+ samples available
-- **Authentication**: Hugging Face token required
-
-To use your own token:
-
-```python
-hf_token = "hf_your_token_here"
-dataset = IndicInstructDataset(tokenizer, hf_token=hf_token)
-```
-
-## Security
-
-- **Hugging Face Token** - Never commit tokens to version control
-- Use environment variables for sensitive credentials
-- See `.gitignore` for files excluded from Git
-
-## Model Persistence
-
-### Saving Models
-
-```python
-from builder import save_model
-
-save_model(model, tokenizer, 'my_model.pt')
-tokenizer.save('my_tokenizer.json')
-```
-
-### Loading Models
-
-```python
-from builder import load_model
-
-model = load_model('my_model.pt', tokenizer)
-```
-
-## Performance
-
-### Inference Speed (CPU)
-
-- Pro Model: ~2-5 seconds per sample
-- Lite Model: ~0.5-1 second per sample
-
-### Memory Usage
-
-- Pro Model: ~1GB
-- Lite Model: ~200MB
-
-> **Note**: Times vary based on hardware and sequence length
-
-## Troubleshooting
-
-### CUDA Issues
+## 🔧 Troubleshooting
 
 ```bash
-# Check CUDA availability
+# Check CUDA
 python -c "import torch; print(torch.cuda.is_available())"
 
-# Force CPU mode
+# Force CPU
 CUDA_VISIBLE_DEVICES="" python train_final.py
+
+# Reduce memory
+# Edit config: batch_size = 2
 ```
 
-### Dataset Loading
+## 📄 License
 
-```bash
-# Update Hugging Face token
-huggingface-cli login
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
 
-# Or set environment variable
-set HF_TOKEN=your_token_here
-```
+## 🤝 Contributing
 
-### Memory Issues
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
-```python
-# Reduce batch size
-config.batch_size = 2
-
-# Use Lite model instead
-model = ThiranModelBuilder.build_lite_model(vocab_size)
-```
-
-## License
-
-This project is licensed under a **Proprietary License** - see the [LICENSE](LICENSE) file for details.
-
-**⚠️ IMPORTANT:**
-
-This software contains proprietary and confidential information.
-
-- Unauthorized use, reproduction, or distribution is strictly prohibited
-- All intellectual property rights are reserved
-- Access is restricted to authorized personnel only
-
-For licensing inquiries, contact: support@thiran.ai
-
-## Security & Confidentiality
-
-- **Classification**: PROPRIETARY
-- **Access Control**: Private repository with restricted access
-- **Data Protection**: All source code and models are confidential
-- **Usage Rights**: Internal use only unless explicitly authorized
-
-## Access & Contributing
-
-This is a **private repository**. Access is restricted to authorized team members only.
-
-For contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md) (internal use only)
-
-## Contact & Support
-
-- **Issues**: GitHub Issues
-- **Email**: support@thiran.ai
-- **Documentation**: [Full Docs](./docs)
-
-## Acknowledgments
-
-- Built with PyTorch and Hugging Face transformers
-- Inspired by vision-language models like CLIP and BLIP
-- Dataset: ai4bharat/indic-instruct-data-v0.1
-- Thanks to the open-source community
-
-## References
+## 📚 References
 
 - Vaswani et al. (2017) - Attention Is All You Need
 - Dosovitskiy et al. (2020) - An Image is Worth 16x16 Words
 - Li et al. (2022) - BLIP: Bootstrapping Language-Image Pre-training
-- Radford et al. (2021) - Learning Transferable Visual Models From Natural Language Supervision (CLIP)
-
-## Changelog
-
-### [1.0.0] - 2025-12-06
-
-- Initial release
-- Pro and Lite model variants
-- Training with Indic Instruct dataset
-- Custom tokenizer implementation
-- Full inference pipeline
 
 ---
 
-Made with ❤️ by the Thiran team
- 
- 
+Made with ❤️ by the VelCore team

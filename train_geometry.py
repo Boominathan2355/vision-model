@@ -11,7 +11,7 @@ from PIL import Image
 import torchvision.transforms as transforms
 
 from tokenizer import CustomTokenizer
-from builder import ThiranModelBuilder, save_model, load_model
+from builder import VelCoreModelBuilder, save_model, load_model
 
 
 class Geometry3KDataset(Dataset):
@@ -336,7 +336,7 @@ def train_single_model(model_type: str, tokenizer, dataset, config: TrainingConf
         num_workers=0
     )
     
-    checkpoint_name = f'thiran_{model_type}_geometry.pt'
+    checkpoint_name = f'VelCore-{model_type.capitalize()}_geometry.pt'
     
     if config.resume_from_checkpoint and os.path.exists(checkpoint_name):
         print(f"\n[LOAD] Loading existing {model_type} model from checkpoint...")
@@ -348,15 +348,15 @@ def train_single_model(model_type: str, tokenizer, dataset, config: TrainingConf
             print(f"  ⚠ Failed to load checkpoint: {e}")
             print(f"  Building new model instead...")
             if model_type == 'pro':
-                model = ThiranModelBuilder.build_pro_model(vocab_size)
+                model = VelCoreModelBuilder.build_pro_model(vocab_size)
             else:
-                model = ThiranModelBuilder.build_lite_model(vocab_size)
+                model = VelCoreModelBuilder.build_lite_model(vocab_size)
     else:
         print(f"\n[BUILD] Building new {model_type} model with vocab size {vocab_size}...")
         if model_type == 'pro':
-            model = ThiranModelBuilder.build_pro_model(vocab_size)
+            model = VelCoreModelBuilder.build_pro_model(vocab_size)
         else:
-            model = ThiranModelBuilder.build_lite_model(vocab_size)
+            model = VelCoreModelBuilder.build_lite_model(vocab_size)
     
     model = model.to(config.device)
     
@@ -389,7 +389,7 @@ def main():
     """Main training function - trains both PRO and LITE models with Geometry3K"""
     
     print("\n" + "=" * 70)
-    print(" THIRAN MODEL TRAINING - Geometry3K Dataset")
+    print(" VELCORE MODEL TRAINING - Geometry3K Dataset")
     print(" Training with REAL geometry diagram images")
     print("=" * 70)
     
@@ -507,8 +507,8 @@ def main():
     print(" ✓ ALL TRAINING COMPLETED SUCCESSFULLY!")
     print("=" * 70)
     print(f"\nResults:")
-    print(f"  PRO  Model: thiran_pro_geometry.pt  (Final loss: {results['pro']:.4f})")
-    print(f"  LITE Model: thiran_lite_geometry.pt (Final loss: {results['lite']:.4f})")
+    print(f"  PRO  Model: VelCore-Pro_geometry.pt  (Final loss: {results['pro']:.4f})")
+    print(f"  LITE Model: VelCore-Lite_geometry.pt (Final loss: {results['lite']:.4f})")
     print(f"\nTokenizer: geometry_tokenizer.json")
     print("=" * 70 + "\n")
 

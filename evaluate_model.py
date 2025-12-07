@@ -4,8 +4,8 @@ from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from tokenizer import CustomTokenizer
-from architecture import ImagePreprocessor, ThiranModel
-from builder import ThiranModelBuilder, load_model
+from architecture import ImagePreprocessor, VelCoreModel
+from builder import VelCoreModelBuilder, load_model
 import os
 
 # ==================== Evaluation Functions ====================
@@ -158,7 +158,7 @@ def print_evaluation_results(metrics, predictions, labels):
 # ==================== Main Evaluation ====================
 if __name__ == "__main__":
     print("\n" + "="*70)
-    print("THIRAN MODEL - EVALUATION")
+    print("VELCORE MODEL - EVALUATION")
     print("="*70)
     
     # Configuration
@@ -193,8 +193,8 @@ if __name__ == "__main__":
         
         # Step 2: Build models
         print("\n[STEP 2] Building models...")
-        pro_model = ThiranModelBuilder.build_pro_model(len(tokenizer.vocab))
-        lite_model = ThiranModelBuilder.build_lite_model(len(tokenizer.vocab))
+        pro_model = VelCoreModelBuilder.build_pro_model(len(tokenizer.vocab))
+        lite_model = VelCoreModelBuilder.build_lite_model(len(tokenizer.vocab))
         
         # Step 3: Generate synthetic evaluation dataset
         print("\n[STEP 3] Preparing evaluation dataset...")
@@ -223,8 +223,8 @@ if __name__ == "__main__":
         print("CHECKING FOR SAVED MODELS")
         print("-"*70)
         
-        pro_model_path = 'thiran_pro_model.pt'
-        lite_model_path = 'thiran_lite_model.pt'
+        pro_model_path = 'VelCore-Pro.pt'
+        lite_model_path = 'VelCore-Lite.pt'
         
         if os.path.exists(pro_model_path):
             print(f"\n✓ Found saved Pro model: {pro_model_path}")

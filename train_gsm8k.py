@@ -9,7 +9,7 @@ from typing import Dict, List
 import json
 
 from tokenizer import CustomTokenizer
-from builder import ThiranModelBuilder, save_model, load_model
+from builder import VelCoreModelBuilder, save_model, load_model
 
 
 class GSM8KDataset(Dataset):
@@ -251,7 +251,7 @@ def train_single_model(model_type: str, tokenizer, dataset, config: TrainingConf
         num_workers=0
     )
     
-    checkpoint_name = f'thiran_{model_type}_gsm8k.pt'
+    checkpoint_name = f'VelCore-{model_type.capitalize()}_gsm8k.pt'
     
     if config.resume_from_checkpoint and os.path.exists(checkpoint_name):
         print(f"\n[LOAD] Loading existing {model_type} model from checkpoint...")
@@ -261,15 +261,15 @@ def train_single_model(model_type: str, tokenizer, dataset, config: TrainingConf
         except Exception as e:
             print(f"  ⚠ Failed to load checkpoint: {e}")
             if model_type == 'pro':
-                model = ThiranModelBuilder.build_pro_model(vocab_size)
+                model = VelCoreModelBuilder.build_pro_model(vocab_size)
             else:
-                model = ThiranModelBuilder.build_lite_model(vocab_size)
+                model = VelCoreModelBuilder.build_lite_model(vocab_size)
     else:
         print(f"\n[BUILD] Building new {model_type} model with vocab size {vocab_size}...")
         if model_type == 'pro':
-            model = ThiranModelBuilder.build_pro_model(vocab_size)
+            model = VelCoreModelBuilder.build_pro_model(vocab_size)
         else:
-            model = ThiranModelBuilder.build_lite_model(vocab_size)
+            model = VelCoreModelBuilder.build_lite_model(vocab_size)
     
     model = model.to(config.device)
     
@@ -302,7 +302,7 @@ def main():
     """Main training function - trains both PRO and LITE models with GSM8K"""
     
     print("\n" + "=" * 70)
-    print(" THIRAN MODEL TRAINING - OpenAI GSM8K Math Dataset")
+    print(" VELCORE MODEL TRAINING - OpenAI GSM8K Math Dataset")
     print(" Training with math word problems and step-by-step solutions")
     print("=" * 70)
     
@@ -413,8 +413,8 @@ def main():
     print(" ✓ ALL TRAINING COMPLETED SUCCESSFULLY!")
     print("=" * 70)
     print(f"\nResults:")
-    print(f"  PRO  Model: thiran_pro_gsm8k.pt  (Final loss: {results['pro']:.4f})")
-    print(f"  LITE Model: thiran_lite_gsm8k.pt (Final loss: {results['lite']:.4f})")
+    print(f"  PRO  Model: VelCore-Pro_gsm8k.pt  (Final loss: {results['pro']:.4f})")
+    print(f"  LITE Model: VelCore-Lite_gsm8k.pt (Final loss: {results['lite']:.4f})")
     print(f"\nTokenizer: gsm8k_tokenizer.json")
     print("=" * 70 + "\n")
 

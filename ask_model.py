@@ -3,13 +3,13 @@ from tokenizer import CustomTokenizer
 from builder import load_model
 
 print("="*70)
-print(" THIRAN MODEL - INTERACTIVE Q&A")
+print(" VELCORE MODEL - INTERACTIVE Q&A")
 print("="*70)
 
 # Load model and tokenizer
 print("\nLoading model...")
 tokenizer = CustomTokenizer(vocab_path='custom_tokenizer.json')
-model = load_model('thiran_pro_model.pt', tokenizer)
+model = load_model('VelCore-Pro.pt', tokenizer)
 model.eval()
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

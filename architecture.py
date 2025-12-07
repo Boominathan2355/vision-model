@@ -285,8 +285,86 @@ class MultimodalEncoder(nn.Module):
             'reasoned_features': reasoned
         }
 
-class ThiranModel(nn.Module):
-    """Main Thiran model with pro and lite versions"""
+
+class ImageGenerator(nn.Module):
+    """Text-to-Image Generator using progressive upsampling"""
+    def __init__(self, hidden_size: int = 768, latent_dim: int = 512):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.latent_dim = latent_dim
+        
+        # Project text features to latent space
+        self.text_projector = nn.Sequential(
+            nn.Linear(hidden_size, latent_dim),
+            nn.LayerNorm(latent_dim),
+            nn.LeakyReLU(0.2),
+            nn.Linear(latent_dim, latent_dim * 4 * 4)  # 4x4 spatial
+        )
+        
+        # Progressive upsampling decoder: 4x4 -> 8x8 -> 16x16 -> 32x32 -> 64x64 -> 128x128 -> 224x224
+        self.decoder = nn.Sequential(
+            # 4x4 -> 8x8
+            nn.ConvTranspose2d(latent_dim, 512, 4, 2, 1),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2),
+            
+            # 8x8 -> 16x16
+            nn.ConvTranspose2d(512, 256, 4, 2, 1),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2),
+            
+            # 16x16 -> 32x32
+            nn.ConvTranspose2d(256, 128, 4, 2, 1),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.2),
+            
+            # 32x32 -> 64x64
+            nn.ConvTranspose2d(128, 64, 4, 2, 1),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2),
+            
+            # 64x64 -> 128x128
+            nn.ConvTranspose2d(64, 32, 4, 2, 1),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU(0.2),
+            
+            # 128x128 -> 256x256
+            nn.ConvTranspose2d(32, 16, 4, 2, 1),
+            nn.BatchNorm2d(16),
+            nn.LeakyReLU(0.2),
+            
+            # Final conv to 3 channels (RGB)
+            nn.Conv2d(16, 3, 3, 1, 1),
+            nn.Tanh()  # Output in [-1, 1] range
+        )
+        
+        # Resize layer to get exact 224x224
+        self.resize = nn.AdaptiveAvgPool2d((224, 224))
+        
+    def forward(self, text_features: torch.Tensor) -> torch.Tensor:
+        """
+        Generate image from text features
+        Args:
+            text_features: [batch, hidden_size] - pooled text representation
+        Returns:
+            generated_image: [batch, 3, 224, 224] - RGB image in [-1, 1] range
+        """
+        batch_size = text_features.size(0)
+        
+        # Project to latent and reshape to 4x4 spatial
+        latent = self.text_projector(text_features)
+        latent = latent.view(batch_size, self.latent_dim, 4, 4)
+        
+        # Progressive upsampling
+        image = self.decoder(latent)
+        
+        # Resize to exact 224x224
+        image = self.resize(image)
+        
+        return image
+
+class VelCoreModel(nn.Module):
+    """Main VelCore model with pro and lite versions"""
     def __init__(self, mode: str = 'pro', tokenizer_vocab_size: int = None):
         super().__init__()
         self.mode = mode
@@ -349,6 +427,12 @@ class ThiranModel(nn.Module):
                 nn.Linear(1024, 224 * 224 * 3),
                 nn.Tanh()
             )
+            
+            # Image Generator (text-to-image)
+            self.image_generator = ImageGenerator(
+                hidden_size=config['hidden_size'],
+                latent_dim=512
+            )
     
     def forward(self, text_input: torch.Tensor, image_input: torch.Tensor) -> Dict:
         # Encode inputs
@@ -396,3 +480,31 @@ class ThiranModel(nn.Module):
             reasoning_tokens = torch.argmax(reasoning_logits, dim=-1)
             
             return reasoning_tokens
+    
+    def generate_image(self, text_input: torch.Tensor) -> torch.Tensor:
+        """
+        Generate image from text input (PRO mode only)
+        Args:
+            text_input: [batch, seq_len] - tokenized text
+        Returns:
+            generated_image: [batch, 3, 224, 224] - RGB image in [-1, 1] range
+        """
+        if self.mode != 'pro':
+            raise ValueError("Image generation is only available in PRO mode")
+        
+        with torch.no_grad():
+            # Create dummy image for encoder (we only need text features)
+            batch_size = text_input.size(0)
+            device = text_input.device
+            dummy_image = torch.zeros(batch_size, 3, 224, 224, device=device)
+            
+            # Get text features from encoder
+            encodings = self.encoder(text_input, dummy_image)
+            
+            # Use pooled text features (mean pooling)
+            text_features = encodings['text_features'].mean(dim=1)  # [batch, hidden]
+            
+            # Generate image
+            generated = self.image_generator(text_features)
+            
+            return generated

@@ -9,7 +9,7 @@ from typing import Dict, List
 import json
 
 from tokenizer import CustomTokenizer
-from builder import ThiranModelBuilder, save_model, load_model
+from builder import VelCoreModelBuilder, save_model, load_model
 
 
 class TuringReasoningDataset(Dataset):
@@ -356,7 +356,7 @@ def train_single_model(model_type: str, tokenizer, dataset, config: TrainingConf
     )
     
     # Build or load model
-    checkpoint_name = f'thiran_{model_type}_model.pt'
+    checkpoint_name = f'VelCore-{model_type.capitalize()}.pt'
     
     if config.resume_from_checkpoint and os.path.exists(checkpoint_name):
         print(f"\n[LOAD] Loading existing {model_type} model from checkpoint...")
@@ -368,15 +368,15 @@ def train_single_model(model_type: str, tokenizer, dataset, config: TrainingConf
             print(f"  ⚠ Failed to load checkpoint: {e}")
             print(f"  Building new model instead...")
             if model_type == 'pro':
-                model = ThiranModelBuilder.build_pro_model(vocab_size)
+                model = VelCoreModelBuilder.build_pro_model(vocab_size)
             else:
-                model = ThiranModelBuilder.build_lite_model(vocab_size)
+                model = VelCoreModelBuilder.build_lite_model(vocab_size)
     else:
         print(f"\n[BUILD] Building new {model_type} model with vocab size {vocab_size}...")
         if model_type == 'pro':
-            model = ThiranModelBuilder.build_pro_model(vocab_size)
+            model = VelCoreModelBuilder.build_pro_model(vocab_size)
         else:
-            model = ThiranModelBuilder.build_lite_model(vocab_size)
+            model = VelCoreModelBuilder.build_lite_model(vocab_size)
     
     model = model.to(config.device)
     
@@ -412,7 +412,7 @@ def main():
     """Main training function - trains both PRO and LITE models"""
     
     print("\n" + "=" * 70)
-    print(" THIRAN MODEL TRAINING - Turing-Open-Reasoning Dataset")
+    print(" VELCORE MODEL TRAINING - Turing-Open-Reasoning Dataset")
     print(" Training BOTH Pro and Lite models")
     print("=" * 70)
     
@@ -539,8 +539,8 @@ def main():
     print(" ✓ ALL TRAINING COMPLETED SUCCESSFULLY!")
     print("=" * 70)
     print(f"\nResults:")
-    print(f"  PRO  Model: thiran_pro_model.pt  (Final loss: {results['pro']:.4f})")
-    print(f"  LITE Model: thiran_lite_model.pt (Final loss: {results['lite']:.4f})")
+    print(f"  PRO  Model: VelCore-Pro.pt  (Final loss: {results['pro']:.4f})")
+    print(f"  LITE Model: VelCore-Lite.pt (Final loss: {results['lite']:.4f})")
     print(f"\nTokenizer: custom_tokenizer.json")
     print("=" * 70 + "\n")
 

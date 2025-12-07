@@ -1,12 +1,12 @@
 import torch
 from tokenizer import CustomTokenizer
 from architecture import ImagePreprocessor
-from builder import ThiranModelBuilder, save_model
+from builder import VelCoreModelBuilder, save_model
 
 # ==================== Example Usage ====================
 if __name__ == "__main__":
     print("=" * 60)
-    print("Building Thiran Models from Scratch with Custom Tokenizer")
+    print("Building VelCore Models from Scratch with Custom Tokenizer")
     print("=" * 60)
     
     # Step 1: Create and build custom tokenizer
@@ -35,9 +35,9 @@ if __name__ == "__main__":
     print(f"  - Sample tokens: {list(custom_tokenizer.vocab.keys())[:10]}")
     
     # Step 2: Build fresh Pro model with custom tokenizer
-    print("\n[2/5] Building Thiran Pro model from scratch...")
-    pro_model = ThiranModel(mode='pro', custom_tokenizer=custom_tokenizer)
-    pro_model.apply(ThiranModelBuilder._init_weights)
+    print("\n[2/5] Building VelCore Pro model from scratch...")
+    pro_model = VelCoreModel(mode='pro', custom_tokenizer=custom_tokenizer)
+    pro_model.apply(VelCoreModelBuilder._init_weights)
     print(f"✓ Pro model built successfully")
     print(f"  - Hidden size: 768")
     print(f"  - Num heads: 12")
@@ -46,9 +46,9 @@ if __name__ == "__main__":
     print(f"  - Vocab size: {len(pro_model.tokenizer.vocab)}")
     
     # Step 3: Build fresh Lite model with custom tokenizer
-    print("\n[3/5] Building Thiran Lite model from scratch...")
-    lite_model = ThiranModel(mode='lite', custom_tokenizer=custom_tokenizer)
-    lite_model.apply(ThiranModelBuilder._init_weights)
+    print("\n[3/5] Building VelCore Lite model from scratch...")
+    lite_model = VelCoreModel(mode='lite', custom_tokenizer=custom_tokenizer)
+    lite_model.apply(VelCoreModelBuilder._init_weights)
     print(f"✓ Lite model built successfully")
     print(f"  - Hidden size: 384")
     print(f"  - Num heads: 8")
