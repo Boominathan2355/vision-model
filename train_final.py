@@ -157,7 +157,7 @@ class TrainingConfig:
     """Configuration for training"""
     def __init__(self):
         self.model_type = 'pro'  # 'lite' or 'pro'
-        self.batch_size = 2
+        self.batch_size = 8  # Larger batch for GPU
         self.num_epochs = 20  # More epochs for smaller dataset (~1000 samples)
         self.learning_rate = 1e-4  # Reduced for stability
         self.max_samples = 1000  # Turing-Open-Reasoning has ~300-1000 samples (use all)

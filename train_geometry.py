@@ -155,7 +155,7 @@ class TrainingConfig:
     """Configuration for training"""
     def __init__(self):
         self.model_type = 'pro'  # 'lite' or 'pro'
-        self.batch_size = 2
+        self.batch_size = 8  # Larger batch for GPU
         self.num_epochs = 15  # Medium epochs for 2000 samples
         self.learning_rate = 1e-4
         self.max_samples = 2000  # geometry3k has 2,101 train samples

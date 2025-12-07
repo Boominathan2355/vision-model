@@ -123,7 +123,7 @@ class TrainingConfig:
     """Configuration for training"""
     def __init__(self):
         self.model_type = 'pro'
-        self.batch_size = 2
+        self.batch_size = 8  # Larger batch for GPU
         self.num_epochs = 10  # Fewer epochs for larger dataset (5000 samples)
         self.learning_rate = 1e-4
         self.max_samples = 5000  # GSM8K socratic has 7,473 train samples
