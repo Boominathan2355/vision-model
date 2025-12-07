@@ -140,6 +140,7 @@ dmypy.json
 data/
 *.csv
 *.json
+!custom_tokenizer.json
 *.jsonl
 *.parquet
 
