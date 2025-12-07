@@ -1,6 +1,6 @@
 import torch
 from tokenizer import CustomTokenizer
-from architecture import ImagePreprocessor
+from architecture import ImagePreprocessor, VelCoreModel
 from builder import VelCoreModelBuilder, save_model
 
 # ==================== Example Usage ====================
@@ -36,7 +36,8 @@ if __name__ == "__main__":
     
     # Step 2: Build fresh Pro model with custom tokenizer
     print("\n[2/5] Building VelCore Pro model from scratch...")
-    pro_model = VelCoreModel(mode='pro', custom_tokenizer=custom_tokenizer)
+    pro_model = VelCoreModel(mode='pro', tokenizer_vocab_size=len(custom_tokenizer.vocab))
+    pro_model.tokenizer = custom_tokenizer
     pro_model.apply(VelCoreModelBuilder._init_weights)
     print(f"✓ Pro model built successfully")
     print(f"  - Hidden size: 768")
@@ -47,7 +48,8 @@ if __name__ == "__main__":
     
     # Step 3: Build fresh Lite model with custom tokenizer
     print("\n[3/5] Building VelCore Lite model from scratch...")
-    lite_model = VelCoreModel(mode='lite', custom_tokenizer=custom_tokenizer)
+    lite_model = VelCoreModel(mode='lite', tokenizer_vocab_size=len(custom_tokenizer.vocab))
+    lite_model.tokenizer = custom_tokenizer
     lite_model.apply(VelCoreModelBuilder._init_weights)
     print(f"✓ Lite model built successfully")
     print(f"  - Hidden size: 384")
