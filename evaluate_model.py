@@ -35,8 +35,11 @@ def generate_synthetic_dataset(num_samples: int = 100, vocab_size: int = 200, ba
     
     return dataloader, text_data, image_data, labels
 
-def evaluate_model(model, dataloader, device='cpu'):
+def evaluate_model(model, dataloader, device=None):
     """Evaluate model on dataset"""
+    if device is None:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
     print(f"\n[INFO] Evaluating model...")
     model.to(device)
     model.eval()

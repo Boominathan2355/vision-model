@@ -9,7 +9,7 @@ from builder import load_model
 import os
 
 
-def generate_image_from_text(model, tokenizer, prompt: str, device: str = 'cpu') -> np.ndarray:
+def generate_image_from_text(model, tokenizer, prompt: str, device: str = None) -> np.ndarray:
     """
     Generate an image from a text prompt
     
@@ -17,11 +17,15 @@ def generate_image_from_text(model, tokenizer, prompt: str, device: str = 'cpu')
         model: VelCore PRO model
         tokenizer: CustomTokenizer instance
         prompt: Text description for image generation
-        device: 'cuda' or 'cpu'
+        prompt: Text description for image generation
+        device: 'cuda' or 'cpu' (if None, auto-detects)
         
     Returns:
         image: numpy array [224, 224, 3] in uint8 format
     """
+    if device is None:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
     model.eval()
     
     # Tokenize the prompt
