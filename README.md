@@ -1,5 +1,5 @@
 # Thiran - Multimodal Vision-Language Model
-
+---
 <div align="center">
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
@@ -8,7 +8,7 @@
 [![Private Repository](https://img.shields.io/badge/Repository-Private-orange.svg)](#)
 
 </div>
-
+---
 > A sophisticated multimodal AI model combining vision and language understanding with advanced reasoning capabilities. Thiran offers two variants: **Pro** (256M parameters) for maximum performance and **Lite** (21.5M parameters) for efficient deployment.
 
 > **⚠️ PROPRIETARY SOFTWARE** - This is a private repository. Unauthorized access, reproduction, or distribution is strictly prohibited.
@@ -351,4 +351,5 @@ For contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md) (internal us
 
 Made with ❤️ by the Thiran team
  
+
  
