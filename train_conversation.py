@@ -15,7 +15,7 @@ from builder import VelCoreModelBuilder, save_model, load_model
 class ConversationDataset(Dataset):
     """Dataset loader for Simple-English-Conversation with synthetic images"""
     
-    def __init__(self, tokenizer: CustomTokenizer, max_samples: int = 500, split: str = "train"):
+    def __init__(self, tokenizer: CustomTokenizer, max_samples: int = None, split: str = "train"):
         """
         Args:
             tokenizer: CustomTokenizer instance
@@ -42,7 +42,7 @@ class ConversationDataset(Dataset):
                 print(f"Dataset keys detected: {dataset[0].keys()}")
 
             for item in dataset:
-                if count >= max_samples:
+                if max_samples is not None and count >= max_samples:
                     break
                     
                 # Robust field extraction for unknown dataset structure
@@ -157,7 +157,7 @@ class TrainingConfig:
         self.batch_size = 8
         self.num_epochs = 20
         self.learning_rate = 1e-4
-        self.max_samples = 2000  # Default to 2000
+        self.max_samples = None  # None = use full dataset
         self.save_every_epoch = True
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.warmup_steps = 10
@@ -273,7 +273,7 @@ def train_single_model(model_type: str, tokenizer, dataset, config: TrainingConf
     )
     
     # Build or load model
-    checkpoint_name = f'VelCore-{model_type.capitalize()}_conversation.pt'
+    checkpoint_name = f'VelCore-{model_type.capitalize()}.pt'
     
     if config.resume_from_checkpoint and os.path.exists(checkpoint_name):
         print(f"\n[LOAD] Loading existing {model_type} model from checkpoint...")
@@ -335,7 +335,7 @@ def main():
         # Extract texts for vocabulary
         all_texts = []
         for i, item in enumerate(dataset_raw):
-            if i >= config.max_samples:
+            if config.max_samples is not None and i >= config.max_samples:
                 break
                 
             # Same robust text extraction as Dataset class
