@@ -152,7 +152,7 @@ CUDA_VISIBLE_DEVICES="" python train_final.py
 
 ## 📄 License
 
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+This project is licensed under the Private License - see [LICENSE](LICENSE) for details.
 
 ## 🤝 Contributing
 
