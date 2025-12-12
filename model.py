@@ -39,11 +39,11 @@ if __name__ == "__main__":
     pro_model = VelCoreModel(mode='pro', tokenizer_vocab_size=len(custom_tokenizer.vocab))
     pro_model.tokenizer = custom_tokenizer
     pro_model.apply(VelCoreModelBuilder._init_weights)
-    print(f"✓ Pro model built successfully (Trillion Parameter Scale)")
-    print(f"  - Hidden size: 6144")
-    print(f"  - Num heads: 48")
-    print(f"  - Fusion layers: 24")
-    print(f"  - Reasoning steps: 32")
+    print(f"✓ Pro model built successfully (600M Parameter Scale with Thinking)")
+    print(f"  - Hidden size: 1536")
+    print(f"  - Num heads: 12")
+    print(f"  - Fusion layers: 6")
+    print(f"  - Reasoning steps: 8")
     print(f"  - Vocab size: {len(pro_model.tokenizer.vocab)}")
     
     # Step 3: Build fresh Lite model with custom tokenizer
@@ -51,11 +51,11 @@ if __name__ == "__main__":
     lite_model = VelCoreModel(mode='lite', tokenizer_vocab_size=len(custom_tokenizer.vocab))
     lite_model.tokenizer = custom_tokenizer
     lite_model.apply(VelCoreModelBuilder._init_weights)
-    print(f"✓ Lite model built successfully (Trillion Parameter Scale)")
-    print(f"  - Hidden size: 3072")
-    print(f"  - Num heads: 24")
-    print(f"  - Fusion layers: 12")
-    print(f"  - Reasoning steps: 16")
+    print(f"✓ Lite model built successfully (300M Parameter Scale with Thinking)")
+    print(f"  - Hidden size: 768")
+    print(f"  - Num heads: 6")
+    print(f"  - Fusion layers: 3")
+    print(f"  - Reasoning steps: 4")
     print(f"  - Vocab size: {len(lite_model.tokenizer.vocab)}")
     
     # Step 4: Prepare example inputs

@@ -21,16 +21,16 @@ class DynamicArchConfig:
             'complexity': complexity,
         }
         
-        # Hidden size adaptation - Trillion Parameter Scale
+        # Hidden size adaptation - 600M/300M Parameter Scale with Thinking
         if avg_seq_length > 256:
-            config['hidden_size_pro'] = 6144
-            config['hidden_size_lite'] = 3072
+            config['hidden_size_pro'] = 1536
+            config['hidden_size_lite'] = 768
         elif avg_seq_length > 128:
-            config['hidden_size_pro'] = 4096
-            config['hidden_size_lite'] = 2048
+            config['hidden_size_pro'] = 1024
+            config['hidden_size_lite'] = 512
         else:
-            config['hidden_size_pro'] = 2048
-            config['hidden_size_lite'] = 1024
+            config['hidden_size_pro'] = 768
+            config['hidden_size_lite'] = 384
         
         # Learning rate adaptation
         if vocab_size > 100:
@@ -57,12 +57,12 @@ class VelCoreModelBuilder:
         # Initialize weights
         model.apply(VelCoreModelBuilder._init_weights)
         
-        print(f"✓ Pro Model built (Trillion Parameter Scale)")
+        print(f"✓ Pro Model built (600M Parameter Scale with Thinking)")
         print(f"  - Mode: Pro")
-        print(f"  - Hidden size: {dynamic_config.get('hidden_size_pro', 6144) if dynamic_config else 6144}")
-        print(f"  - Num heads: 48")
-        print(f"  - Num fusion layers: 24")
-        print(f"  - Reasoning steps: 32")
+        print(f"  - Hidden size: {dynamic_config.get('hidden_size_pro', 1536) if dynamic_config else 1536}")
+        print(f"  - Num heads: 12")
+        print(f"  - Num fusion layers: 6")
+        print(f"  - Reasoning steps: 8")
         print(f"  - Vocab size: {tokenizer_vocab_size}")
         print(f"  - Total parameters: {sum(p.numel() for p in model.parameters()):,}")
         if dynamic_config:
@@ -79,12 +79,12 @@ class VelCoreModelBuilder:
         # Initialize weights
         model.apply(VelCoreModelBuilder._init_weights)
         
-        print(f"✓ Lite Model built (Trillion Parameter Scale)")
+        print(f"✓ Lite Model built (300M Parameter Scale with Thinking)")
         print(f"  - Mode: Lite")
-        print(f"  - Hidden size: {dynamic_config.get('hidden_size_lite', 3072) if dynamic_config else 3072}")
-        print(f"  - Num heads: 24")
-        print(f"  - Num fusion layers: 12")
-        print(f"  - Reasoning steps: 16")
+        print(f"  - Hidden size: {dynamic_config.get('hidden_size_lite', 768) if dynamic_config else 768}")
+        print(f"  - Num heads: 6")
+        print(f"  - Num fusion layers: 3")
+        print(f"  - Reasoning steps: 4")
         print(f"  - Vocab size: {tokenizer_vocab_size}")
         print(f"  - Total parameters: {sum(p.numel() for p in model.parameters()):,}")
         if dynamic_config:
