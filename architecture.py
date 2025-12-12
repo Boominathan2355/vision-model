@@ -372,20 +372,20 @@ class VelCoreModel(nn.Module):
         # Configuration - 600M/300M Parameter Scale with Thinking
         if mode == 'pro':
             config = {
-                'hidden_size': 1536,
+                'hidden_size': 1024,
                 'vocab_size': tokenizer_vocab_size or 1000,
                 'max_seq_len': 8192,
-                'num_heads': 12,
+                'num_heads': 16,  # 1024 / 64 = 16 heads
                 'num_fusion_layers': 6,
                 'reasoning_steps': 8,
                 'mode': 'pro'
             }
         else:  # lite
             config = {
-                'hidden_size': 768,
+                'hidden_size': 512,
                 'vocab_size': tokenizer_vocab_size or 1000,
                 'max_seq_len': 8192,
-                'num_heads': 6,
+                'num_heads': 8,   # 512 / 64 = 8 heads
                 'num_fusion_layers': 3,
                 'reasoning_steps': 4,
                 'mode': 'lite'

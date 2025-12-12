@@ -23,14 +23,14 @@ class DynamicArchConfig:
         
         # Hidden size adaptation - 600M/300M Parameter Scale with Thinking
         if avg_seq_length > 256:
-            config['hidden_size_pro'] = 1536
-            config['hidden_size_lite'] = 768
-        elif avg_seq_length > 128:
             config['hidden_size_pro'] = 1024
             config['hidden_size_lite'] = 512
-        else:
+        elif avg_seq_length > 128:
             config['hidden_size_pro'] = 768
             config['hidden_size_lite'] = 384
+        else:
+            config['hidden_size_pro'] = 512
+            config['hidden_size_lite'] = 256
         
         # Learning rate adaptation
         if vocab_size > 100:
@@ -51,7 +51,7 @@ class VelCoreModelBuilder:
     
     @staticmethod
     def build_pro_model(tokenizer_vocab_size: int, dynamic_config: Optional[Dict] = None) -> VelCoreModel:
-        """Build pro version of VelCore model - Trillion Parameter Scale"""
+        """Build pro version of VelCore model - 600M Parameter Scale"""
         model = VelCoreModel(mode='pro', tokenizer_vocab_size=tokenizer_vocab_size)
         
         # Initialize weights
@@ -59,8 +59,8 @@ class VelCoreModelBuilder:
         
         print(f"✓ Pro Model built (600M Parameter Scale with Thinking)")
         print(f"  - Mode: Pro")
-        print(f"  - Hidden size: {dynamic_config.get('hidden_size_pro', 1536) if dynamic_config else 1536}")
-        print(f"  - Num heads: 12")
+        print(f"  - Hidden size: {dynamic_config.get('hidden_size_pro', 1024) if dynamic_config else 1024}")
+        print(f"  - Num heads: 16")
         print(f"  - Num fusion layers: 6")
         print(f"  - Reasoning steps: 8")
         print(f"  - Vocab size: {tokenizer_vocab_size}")
@@ -73,7 +73,7 @@ class VelCoreModelBuilder:
     
     @staticmethod
     def build_lite_model(tokenizer_vocab_size: int, dynamic_config: Optional[Dict] = None) -> VelCoreModel:
-        """Build lite version of VelCore model - Trillion Parameter Scale"""
+        """Build lite version of VelCore model - 300M Parameter Scale"""
         model = VelCoreModel(mode='lite', tokenizer_vocab_size=tokenizer_vocab_size)
         
         # Initialize weights
@@ -81,8 +81,8 @@ class VelCoreModelBuilder:
         
         print(f"✓ Lite Model built (300M Parameter Scale with Thinking)")
         print(f"  - Mode: Lite")
-        print(f"  - Hidden size: {dynamic_config.get('hidden_size_lite', 768) if dynamic_config else 768}")
-        print(f"  - Num heads: 6")
+        print(f"  - Hidden size: {dynamic_config.get('hidden_size_lite', 512) if dynamic_config else 512}")
+        print(f"  - Num heads: 8")
         print(f"  - Num fusion layers: 3")
         print(f"  - Reasoning steps: 4")
         print(f"  - Vocab size: {tokenizer_vocab_size}")

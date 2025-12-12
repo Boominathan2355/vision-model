@@ -8,7 +8,7 @@
 
 </div>
 
-> A multimodal AI model combining vision and language understanding with advanced reasoning and image generation capabilities. VelCore offers two variants: **Pro** (Trillion Parameter Scale) and **Lite** (Billion Parameter Scale) with state-of-the-art reasoning and multimodal understanding.
+> A multimodal AI model combining vision and language understanding with advanced reasoning and image generation capabilities. VelCore offers two variants: **Pro** (600M Parameter Scale) and **Lite** (300M Parameter Scale) with state-of-the-art reasoning and multimodal understanding.
 
 ## ✨ Features
 
@@ -98,14 +98,14 @@ python ask_model.py
 
 ## 📊 Model Architecture
 
-| Spec | VelCore-Pro (Trillion) | VelCore-Lite (Billion) |
-|------|-------------|---------------|\
-| Hidden Size | 6144 | 3072 |
-| Attention Heads | 48 | 24 |
-| Fusion Layers | 24 | 12 |
-| Reasoning Steps | 32 | 16 |
+| Spec | VelCore-Pro (600M) | VelCore-Lite (300M) |
+|------|-------------|---------------|
+| Hidden Size | 1024 | 512 |
+| Attention Heads | 16 | 8 |
+| Fusion Layers | 6 | 3 |
+| Reasoning Steps | 8 | 4 |
 | Max Sequence Length | 8192 | 8192 |
-| Parameters | ~1.2T+ | ~120B+ |
+| Parameters | ~600M | ~300M |
 
 ## 📁 Project Structure
 
@@ -235,32 +235,32 @@ with torch.no_grad():
 
 ## 🎯 Choosing a Model Variant
 
-### VelCore-Pro (Trillion Parameter)
-- **Best For**: Production systems, advanced research, enterprise-grade vision-language tasks
-- **Parameters**: ~1.2 Trillion
+### VelCore-Pro (600M Parameter)
+- **Best For**: Advanced research, enterprise-grade vision-language tasks
+- **Parameters**: ~600 Million
 - **Features**: Advanced image generation, reconstruction, multi-step reasoning, complex visual understanding
-- **Memory**: 80GB+ VRAM (A100/H100 recommended), 256GB+ system RAM
+- **Memory**: 24GB+ VRAM, 32GB+ system RAM
 - **Speed**: ~500-1000ms per inference
 - **Capabilities**: State-of-the-art reasoning, detailed image analysis, complex problem solving
 
-### VelCore-Lite (Billion Parameter)
-- **Best For**: Production deployments, efficient inference, cost-sensitive applications
-- **Parameters**: ~120 Billion
+### VelCore-Lite (300M Parameter)
+- **Best For**: Production deployments, efficient inference, edge devices
+- **Parameters**: ~300 Million
 - **Features**: Classification, multi-step reasoning, image understanding, fast inference
-- **Memory**: 16GB+ VRAM, 64GB+ system RAM
+- **Memory**: 8GB+ VRAM, 16GB+ system RAM
 - **Speed**: ~100-200ms per inference
 - **Capabilities**: Strong reasoning capabilities with reduced latency and memory footprint
 
 ### Performance Comparison
 
-| Metric | Pro (Trillion) | Lite (Billion) | Notes |
+| Metric | Pro (600M) | Lite (300M) | Notes |
 |--------|---|---|-------|
 | Reasoning Accuracy | 92-97% | 85-92% | Complex multi-step reasoning |
 | Image Understanding | State-of-the-art | Excellent | Fine-grained visual analysis |
-| Inference Speed | ~750ms | ~150ms | Per example, batch=1 |
-| Training Time | 7-14 days | 1-3 days | On 8x A100 GPUs |
-| Model Size (Disk) | ~2.4TB | ~240GB | FP16 precision |
-| Throughput | 1-2 ex/min | 5-10 ex/min | Single GPU, batch=1 |
+| Inference Speed | ~200ms | ~50ms | Per example, batch=1 |
+| Training Time | 1-2 days | 6-12 hours | On 4x GPU |
+| Model Size (Disk) | ~2.4GB | ~1.2GB | FP32 precision |
+| Throughput | 50-100 ex/min | 200+ ex/min | Single GPU, batch=1 |
 
 ## 🔧 Troubleshooting
 

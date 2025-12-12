@@ -151,7 +151,7 @@ def collate_fn(batch):
 
 
 class TrainingConfig:
-    """Configuration for training - Optimized for Trillion Parameter Scale"""
+    """Configuration for training - Optimized for 600M/300M Parameter Scale"""
     def __init__(self):
         self.model_type = 'pro'  # 'lite' or 'pro'
         self.batch_size = 2  # Reduced for trillion params
