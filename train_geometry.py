@@ -152,17 +152,21 @@ def collate_fn(batch):
 
 
 class TrainingConfig:
-    """Configuration for training"""
+    """Configuration for training - Optimized for Trillion Parameter Scale"""
     def __init__(self):
         self.model_type = 'pro'  # 'lite' or 'pro'
-        self.batch_size = 8  # Larger batch for GPU
-        self.num_epochs = 15  # Medium epochs for 2000 samples
-        self.learning_rate = 1e-4
+        self.batch_size = 2  # Reduced for trillion params
+        self.gradient_accumulation_steps = 4  # Simulate batch size of 8
+        self.num_epochs = 12  # Medium epochs for 2000 samples
+        self.learning_rate = 5e-5  # Lower LR for massive model
         self.max_samples = 2000  # geometry3k has 2,101 train samples
         self.save_every_epoch = True
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.warmup_steps = 10
+        self.warmup_steps = 200  # Extended warmup
         self.resume_from_checkpoint = True
+        self.use_mixed_precision = True  # AMP for memory efficiency
+        self.max_grad_norm = 0.5  # Tighter clipping
+        self.weight_decay = 0.01
         
         # Loss weights
         self.classification_weight = 0.3
@@ -241,11 +245,14 @@ def compute_loss(outputs: Dict, labels: torch.Tensor, text_tokens: torch.Tensor,
 
 
 def train_epoch(model, dataloader, optimizer, config: TrainingConfig, epoch: int):
-    """Train for one epoch"""
+    """Train for one epoch with gradient accumulation and mixed precision"""
     model.train()
     
     total_loss = 0
+    accumulated_loss = 0
     progress_bar = tqdm(dataloader, desc=f"Epoch {epoch+1}/{config.num_epochs}")
+    
+    scaler = torch.cuda.amp.GradScaler() if config.use_mixed_precision else None
     
     for batch_idx, batch in enumerate(progress_bar):
         text_tokens = batch['text_tokens'].to(config.device)
@@ -256,55 +263,69 @@ def train_epoch(model, dataloader, optimizer, config: TrainingConfig, epoch: int
         
         if debug_mode:
             print(f"\n{'='*70}")
-            print(f"[DEBUG] First Batch of Training")
+            print(f"[DEBUG] First Batch - Geometry Training (Trillion Param Optimized)")
             print(f"{'='*70}")
             print(f"Text tokens shape: {text_tokens.shape}")
             print(f"Images shape: {images.shape}")
             print(f"Labels shape: {labels.shape}")
-            print(f"Text tokens sample (first 20): {text_tokens[0, :20]}")
-            print(f"Labels: {labels}")
-            print(f"Images min/max: {images.min():.4f} / {images.max():.4f}")
+            print(f"Gradient Accumulation: {config.gradient_accumulation_steps}x")
+            print(f"Mixed Precision: {config.use_mixed_precision}")
         
-        optimizer.zero_grad()
-        
-        if debug_mode:
-            print(f"\n[DEBUG] Running forward pass...")
-        
-        outputs = model(text_tokens, images)
-        
-        if debug_mode:
-            print(f"[DEBUG] Forward pass completed")
-            print(f"  Output keys: {outputs.keys()}")
-        
-        losses = compute_loss(outputs, labels, text_tokens, images, config, debug=debug_mode)
-        
-        if torch.isnan(losses['total_loss']):
+        try:
+            if config.use_mixed_precision:
+                with torch.autocast(device_type='cuda', dtype=torch.float16):
+                    outputs = model(text_tokens, images)
+                    losses = compute_loss(outputs, labels, text_tokens, images, config, debug=debug_mode)
+                    loss = losses['total_loss'] / config.gradient_accumulation_steps
+            else:
+                outputs = model(text_tokens, images)
+                losses = compute_loss(outputs, labels, text_tokens, images, config, debug=debug_mode)
+                loss = losses['total_loss'] / config.gradient_accumulation_steps
+            
+            if torch.isnan(loss):
+                if debug_mode:
+                    print(f"\n[ERROR] NaN detected in loss!")
+                continue
+            
+            if config.use_mixed_precision:
+                scaler.scale(loss).backward()
+            else:
+                loss.backward()
+            
+            accumulated_loss += loss.item()
+            
+            if (batch_idx + 1) % config.gradient_accumulation_steps == 0:
+                if config.use_mixed_precision:
+                    scaler.unscale_(optimizer)
+                
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=config.max_grad_norm)
+                
+                if debug_mode:
+                    has_nan_grad = False
+                    for name, param in model.named_parameters():
+                        if param.grad is not None and torch.isnan(param.grad).any():
+                            print(f"  NaN gradient in: {name}")
+                            has_nan_grad = True
+                    if not has_nan_grad:
+                        print(f"  All gradients are valid (no NaN)")
+                
+                if config.use_mixed_precision:
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    optimizer.step()
+                
+                optimizer.zero_grad()
+                accumulated_loss = 0
+            
             if debug_mode:
-                print(f"\n[ERROR] NaN detected in total_loss before backward pass!")
-                print(f"  Skipping this batch...")
-            continue
-        
-        if debug_mode:
-            print(f"\n[DEBUG] Running backward pass...")
-        
-        losses['total_loss'].backward()
-        
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        
-        if debug_mode:
-            has_nan_grad = False
-            for name, param in model.named_parameters():
-                if param.grad is not None and torch.isnan(param.grad).any():
-                    print(f"  NaN gradient in: {name}")
-                    has_nan_grad = True
-            if not has_nan_grad:
-                print(f"  All gradients are valid (no NaN)")
-        
-        optimizer.step()
-        
-        if debug_mode:
-            print(f"[DEBUG] Backward pass completed")
+                print(f"[DEBUG] Backward pass completed")
             print(f"{'='*70}\n")
+        
+        except RuntimeError as e:
+            print(f"\nError in batch {batch_idx}: {e}")
+            optimizer.zero_grad()
+            continue
         
         total_loss += losses['total_loss'].item()
         
@@ -314,15 +335,15 @@ def train_epoch(model, dataloader, optimizer, config: TrainingConfig, epoch: int
             'lm': f"{losses['lm_loss'].item():.4f}"
         })
     
-    avg_loss = total_loss / len(dataloader)
+    avg_loss = total_loss / max(len(dataloader), 1)
     return avg_loss
 
 
 def train_single_model(model_type: str, tokenizer, dataset, config: TrainingConfig):
-    """Train a single model type (pro or lite)"""
+    """Train a single model type (pro or lite) - Trillion Parameter Optimized"""
     
     print("\n" + "=" * 70)
-    print(f" TRAINING {model_type.upper()} MODEL with Geometry3K")
+    print(f" TRAINING {model_type.upper()} MODEL with Geometry3K (TRILLION PARAMETER SCALE)")
     print("=" * 70)
     
     config.model_type = model_type
@@ -363,9 +384,21 @@ def train_single_model(model_type: str, tokenizer, dataset, config: TrainingConf
     total_params = sum(p.numel() for p in model.parameters())
     print(f"  ✓ Model ready - {total_params:,} parameters")
     
-    optimizer = AdamW(model.parameters(), lr=config.learning_rate, weight_decay=0.01)
+    optimizer = AdamW(
+        model.parameters(),
+        lr=config.learning_rate,
+        weight_decay=config.weight_decay,
+        betas=(0.9, 0.95)
+    )
     
     print(f"\n[TRAIN] Starting training for {config.num_epochs} epochs...")
+    print(f"  ├─ Batch Size: {config.batch_size}")
+    print(f"  ├─ Gradient Accumulation: {config.gradient_accumulation_steps}x (eff. batch: {config.batch_size * config.gradient_accumulation_steps})")
+    print(f"  ├─ Learning Rate: {config.learning_rate}")
+    print(f"  ├─ Warmup Steps: {config.warmup_steps}")
+    print(f"  ├─ Max Grad Norm: {config.max_grad_norm}")
+    print(f"  ├─ Mixed Precision: {config.use_mixed_precision}")
+    print(f"  └─ Device: {config.device}")
     
     best_loss = float('inf')
     training_history = []

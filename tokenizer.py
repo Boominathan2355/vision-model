@@ -5,7 +5,7 @@ import re
 
 # ==================== Custom Tokenizer ====================
 class CustomTokenizer:
-    def __init__(self, vocab_path: str = None, max_length: int = 512):
+    def __init__(self, vocab_path: str = None, max_length: int = 4096):
         """Custom tokenizer with thinking/reasoning tokens"""
         self.max_length = max_length
         self.thinking_tokens = {

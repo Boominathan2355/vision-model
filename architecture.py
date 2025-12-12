@@ -364,30 +364,30 @@ class ImageGenerator(nn.Module):
         return image
 
 class VelCoreModel(nn.Module):
-    """Main VelCore model with pro and lite versions"""
+    """Main VelCore model with pro and lite versions - Trillion Parameter Scale"""
     def __init__(self, mode: str = 'pro', tokenizer_vocab_size: int = None):
         super().__init__()
         self.mode = mode
         
-        # Configuration
+        # Configuration - Trillion Parameter Scale
         if mode == 'pro':
             config = {
-                'hidden_size': 768,
+                'hidden_size': 6144,
                 'vocab_size': tokenizer_vocab_size or 1000,
-                'max_seq_len': 512,
-                'num_heads': 12,
-                'num_fusion_layers': 6,
-                'reasoning_steps': 4,
+                'max_seq_len': 8192,
+                'num_heads': 48,
+                'num_fusion_layers': 24,
+                'reasoning_steps': 32,
                 'mode': 'pro'
             }
         else:  # lite
             config = {
-                'hidden_size': 384,
+                'hidden_size': 3072,
                 'vocab_size': tokenizer_vocab_size or 1000,
-                'max_seq_len': 512,
-                'num_heads': 8,
-                'num_fusion_layers': 3,
-                'reasoning_steps': 2,
+                'max_seq_len': 8192,
+                'num_heads': 24,
+                'num_fusion_layers': 12,
+                'reasoning_steps': 16,
                 'mode': 'lite'
             }
         

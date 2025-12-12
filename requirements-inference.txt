@@ -1,0 +1,29 @@
+# VelCore Requirements for Development & Inference
+# Minimal, fast-loading requirements for inference and API development
+#
+# Installation:
+#   pip install -r requirements-inference.txt
+
+# Core Deep Learning Framework
+torch==2.1.2
+torchvision==0.16.2
+
+# NLP and Transformers (lightweight)
+transformers==4.36.2
+tokenizers==0.15.1
+
+# Minimal Data Processing
+numpy==1.24.4
+Pillow==10.1.0
+
+# Progress
+tqdm==4.66.2
+
+# Utilities
+pydantic==2.5.3
+python-dotenv==1.0.0
+
+# Optional: For API deployment
+fastapi==0.109.0
+uvicorn==0.27.0
+pydantic-settings==2.1.0

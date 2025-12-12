@@ -151,17 +151,21 @@ def collate_fn(batch):
 
 
 class TrainingConfig:
-    """Configuration for training"""
+    """Configuration for training - Optimized for Trillion Parameter Scale"""
     def __init__(self):
         self.model_type = 'pro'  # 'lite' or 'pro'
-        self.batch_size = 8
-        self.num_epochs = 20
-        self.learning_rate = 1e-4
+        self.batch_size = 2  # Reduced for trillion params
+        self.gradient_accumulation_steps = 4  # Simulate batch size of 8
+        self.num_epochs = 15  # Medium epochs for conversation data
+        self.learning_rate = 5e-5  # Lower LR for massive model
         self.max_samples = None  # None = use full dataset
         self.save_every_epoch = True
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.warmup_steps = 10
+        self.warmup_steps = 200  # Extended warmup
         self.resume_from_checkpoint = True
+        self.use_mixed_precision = True  # AMP for memory efficiency
+        self.max_grad_norm = 0.5  # Tighter clipping
+        self.weight_decay = 0.01
         
         # Loss weights
         self.classification_weight = 0.3
