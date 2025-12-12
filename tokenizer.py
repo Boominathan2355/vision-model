@@ -47,7 +47,7 @@ class CustomTokenizer:
     
     def _preprocess(self, text: str) -> str:
         """Preprocess text"""
-        text = text.lower()
+        # text = text.lower() # disable lowercasing for better reconstruction
         # Add space before punctuation for better tokenization
         text = re.sub(r'([.,!?;:])', r' \1 ', text)
         text = re.sub(r'\s+', ' ', text)

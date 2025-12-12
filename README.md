@@ -12,12 +12,13 @@
 
 ## ✨ Features
 
-| Feature | Pro | Lite | Description |
+|Feature | Pro | Lite | Description |
 |---------|-----|------|-------------|
 | **Domain Classification** | ✅ | ✅ | Classifies into Math, Physics, Chemistry, Biology, CS, Engineering |
 | **Text Reasoning** | ✅ | ✅ | Generates reasoning/answer text from questions |
 | **Image Understanding** | ✅ | ✅ | Processes and understands 224×224 images |
 | **Multimodal Fusion** | ✅ | ✅ | Combines text + image for reasoning |
+| **Case Sensitive** | ✅ | ✅ | Preserves text case for better context understanding |
 | **Image Reconstruction** | ✅ | ❌ | Reconstructs input images |
 | **Image Generation** | ✅ | ❌ | Generates images from text prompts |
 
@@ -154,7 +155,7 @@ vision-model/
 | `train_geometry.py` | Geometry3K | Visual Geometry | Real geometry diagrams with image understanding |
 | `train_gsm8k.py` | GSM8K | Math Problem Solving | Grade school math word problems |
 | `train_socratic.py` | GSM8K Socratic | Step-by-Step Reasoning | Socratic method for reasoning explanation |
-| `train_conversation.py` | Dialogue Data | Conversational AI | Training on multi-turn conversations |
+| `train_conversation.py` | Xerv-AI/Simple-English-Conversation | Conversational AI | Training on multi-turn conversations |
 
 ```bash
 # Run individual training scripts
