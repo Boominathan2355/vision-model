@@ -12,8 +12,8 @@
 
 ## ✨ Features
 
-|Feature | Pro | Lite | Description |
-|---------|-----|------|-------------|
+| Feature | Pro-model | Lite-model | Description |
+|---------|-----------|------------|-------------|
 | **Domain Classification** | ✅ | ✅ | Classifies into Math, Physics, Chemistry, Biology, CS, Engineering |
 | **Text Reasoning** | ✅ | ✅ | Generates reasoning/answer text from questions |
 | **Image Understanding** | ✅ | ✅ | Processes and understands 224×224 images |
@@ -27,8 +27,8 @@
 - Python 3.10+
 - PyTorch 2.1.0+
 - CUDA 11.8+ (required for Pro model, optional for Lite)
-- **Pro Model**: 48GB+ VRAM (80GB+ A100 recommended), 256GB+ system RAM
-- **Lite Model**: 16GB+ VRAM, 64GB+ system RAM
+- **Pro Model**: 24GB+ VRAM, 32GB+ system RAM
+- **Lite Model**: 8GB+ VRAM, 16GB+ system RAM
 
 ## 🚀 Quick Start
 
@@ -47,6 +47,16 @@ python -m venv .venv
 # Install dependencies
 pip install -r requirements.txt
 ```
+
+### Dataset Authentication (Crucial)
+
+To access gated datasets (e.g., `Turing-Open-Reasoning`, `Simple-English-Conversation`), you must provide a Hugging Face token.
+
+1.  Get your token from [Hugging Face Settings](https://huggingface.co/settings/tokens).
+2.  Create a file named `token.txt` in the root directory.
+3.  Paste your token inside `token.txt` (no spaces or newlines).
+
+The training scripts will automatically read this file to authenticate downloads.
 
 ### Basic Usage
 
@@ -99,7 +109,7 @@ python ask_model.py
 
 ## 📊 Model Architecture
 
-| Spec | VelCore-Pro (600M) | VelCore-Lite (300M) |
+| Spec | Pro-model (600M) | Lite-model (300M) |
 |------|-------------|---------------|
 | Hidden Size | 1024 | 512 |
 | Attention Heads | 16 | 8 |
@@ -142,7 +152,6 @@ vision-model/
 │
 └── Data & Config
     ├── custom_tokenizer.json     # Tokenizer configuration
-    ├── upgrade_config.json       # Model upgrade configuration
     ├── token.txt                 # API tokens (not version controlled)
     └── .venv/                    # Virtual environment (not version controlled)
 ```
@@ -165,6 +174,8 @@ python train_gsm8k.py      # Math problem training
 python train_socratic.py   # Socratic reasoning training
 python train_conversation.py  # Conversational training
 ```
+
+> **Note**: All scripts support full dataset training (`max_samples=None`) and authenticated downloading via `token.txt`.
 
 ## 💡 Example Scripts
 
@@ -209,10 +220,10 @@ Check individual scripts for available arguments and customization options.
 from builder import VelCoreModelBuilder, save_model, load_model
 
 # Save a trained model
-save_model(model, tokenizer, model_path="./my_velcore_model.pt")
+save_model(model, tokenizer, model_path="./Pro-model.pt")
 
 # Load a saved model
-model, tokenizer = load_model(model_path="./my_velcore_model.pt")
+model, tokenizer = load_model(model_path="./Pro-model.pt")
 
 # Model inference
 model.eval()
@@ -236,7 +247,7 @@ with torch.no_grad():
 
 ## 🎯 Choosing a Model Variant
 
-### VelCore-Pro (600M Parameter)
+### Pro-model (600M Parameter)
 - **Best For**: Advanced research, enterprise-grade vision-language tasks
 - **Parameters**: ~600 Million
 - **Features**: Advanced image generation, reconstruction, multi-step reasoning, complex visual understanding
@@ -244,7 +255,7 @@ with torch.no_grad():
 - **Speed**: ~500-1000ms per inference
 - **Capabilities**: State-of-the-art reasoning, detailed image analysis, complex problem solving
 
-### VelCore-Lite (300M Parameter)
+### Lite-model (300M Parameter)
 - **Best For**: Production deployments, efficient inference, edge devices
 - **Parameters**: ~300 Million
 - **Features**: Classification, multi-step reasoning, image understanding, fast inference

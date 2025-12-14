@@ -103,7 +103,7 @@ class VelCoreModelBuilder:
         elif isinstance(module, nn.Embedding):
             nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
-def save_model(model: VelCoreModel, tokenizer, path: str = 'VelCore.pt', dynamic_config: Optional[Dict] = None):
+def save_model(model: VelCoreModel, tokenizer, path: str = 'Pro-model.pt', dynamic_config: Optional[Dict] = None):
     """Save model with configuration, weights, and metadata"""
     save_data = {
         'model_state_dict': model.state_dict(),
@@ -125,24 +125,65 @@ def save_model(model: VelCoreModel, tokenizer, path: str = 'VelCore.pt', dynamic
         print(f"  - Dynamic config saved: LR={dynamic_config.get('learning_rate')}, BS={dynamic_config.get('batch_size')}")
 
 def load_model(path: str, tokenizer, mode: str = None) -> VelCoreModel:
-    """Load saved model with weights and configuration"""
-    save_data = torch.load(path, map_location='cpu')
+    """
+    Load saved model with weights and configuration
+    Auto-resizes embeddings if vocabulary size mismatches
+    """
+    try:
+        save_data = torch.load(path, map_location='cpu')
+    except Exception as e:
+        print(f"Error loading file {path}: {e}")
+        raise e
     
     # Determine mode
     mode = mode or save_data.get('mode', 'pro')
     vocab_size = len(tokenizer.vocab)
     
-    # Build appropriate model
+    # Build appropriate model with CURRENT vocab size
     dynamic_config = save_data.get('dynamic_config', {})
     if mode == 'pro':
         model = VelCoreModelBuilder.build_pro_model(vocab_size, dynamic_config)
     else:
         model = VelCoreModelBuilder.build_lite_model(vocab_size, dynamic_config)
     
-    # Load weights from state dict
-    model.load_state_dict(save_data['model_state_dict'])
+    # Process state dict for shape mismatches (Vocab Adaptation)
+    state_dict = save_data['model_state_dict']
     
-    print(f"✓ Model loaded from {path}")
+    # Check text_embedding mismatch
+    if 'encoder.text_embedding.weight' in state_dict:
+        saved_vocab_size = state_dict['encoder.text_embedding.weight'].shape[0]
+        if saved_vocab_size != vocab_size:
+            print(f"  ⚠ Vocab size mismatch: Saved={saved_vocab_size}, Current={vocab_size}. Resizing embeddings...")
+            
+            # 1. Resize Encoder Embeddings
+            old_emb = state_dict['encoder.text_embedding.weight']
+            new_emb = model.encoder.text_embedding.weight.data.clone()
+            # Copy common vocab indices
+            min_vocab = min(saved_vocab_size, vocab_size)
+            new_emb[:min_vocab] = old_emb[:min_vocab]
+            state_dict['encoder.text_embedding.weight'] = new_emb
+            
+            # 2. Resize Generation Head (if present)
+            if 'generation_head.weight' in state_dict:
+                old_head = state_dict['generation_head.weight']
+                new_head = model.generation_head.weight.data.clone()
+                new_head[:min_vocab] = old_head[:min_vocab]
+                state_dict['generation_head.weight'] = new_head
+                
+            if 'generation_head.bias' in state_dict:
+                old_bias = state_dict['generation_head.bias']
+                new_bias = model.generation_head.bias.data.clone()
+                new_bias[:min_vocab] = old_bias[:min_vocab]
+                state_dict['generation_head.bias'] = new_bias
+
+    # Load weights
+    try:
+        model.load_state_dict(state_dict, strict=False)
+        print(f"✓ Model loaded from {path} (with vocab adaptation)")
+    except Exception as e:
+        print(f"⚠ Strict loading failed, trying non-strict: {e}")
+        model.load_state_dict(state_dict, strict=False)
+        
     print(f"  - Mode: {mode}")
     print(f"  - Total parameters: {sum(p.numel() for p in model.parameters()):,}")
     

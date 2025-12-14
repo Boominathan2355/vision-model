@@ -26,15 +26,24 @@ class GSM8KDataset(Dataset):
         
         print(f"Loading GSM8K dataset (max {max_samples} samples)...")
         
+        # Load token
+        token = None
+        if os.path.exists("token.txt"):
+            try:
+                with open("token.txt", "r") as f:
+                    token = f.read().strip()
+            except:
+                pass
+
         # Load dataset from Hugging Face
         try:
-            dataset = load_dataset("openai/gsm8k", "main", split=split)
+            dataset = load_dataset("openai/gsm8k", "main", split=split, token=token)
             
             # Process samples
             self.samples = []
             count = 0
             for item in dataset:
-                if count >= max_samples:
+                if max_samples is not None and count >= max_samples:
                     break
                 
                 # GSM8K fields: question, answer
@@ -129,7 +138,7 @@ class TrainingConfig:
         self.gradient_accumulation_steps = 4  # Simulate batch size of 8
         self.num_epochs = 8  # Fewer epochs for larger dataset (5000 samples)
         self.learning_rate = 5e-5  # Lower LR for massive model
-        self.max_samples = 5000  # GSM8K has 7,473 train samples
+        self.max_samples = None  # None = use full dataset
         self.save_every_epoch = True
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.warmup_steps = 200  # Extended warmup
@@ -290,12 +299,12 @@ def train_single_model(model_type: str, tokenizer, dataset, config: TrainingConf
         num_workers=0
     )
     
-    checkpoint_name = f'VelCore-{model_type.capitalize()}.pt'
+    checkpoint_name = 'Pro-model.pt' if model_type == 'pro' else 'Lite-model.pt'
     
     if config.resume_from_checkpoint and os.path.exists(checkpoint_name):
         print(f"\n[LOAD] Loading existing {model_type} model from checkpoint...")
         try:
-            model = load_model(checkpoint_name, tokenizer, mode=model_type)
+            model, _ = load_model(checkpoint_name, tokenizer, mode=model_type)
             print(f"  ✓ Model loaded from checkpoint - resuming training")
         except Exception as e:
             print(f"  ⚠ Failed to load checkpoint: {e}")
@@ -371,11 +380,20 @@ def main():
     print(f"\n[STEP 1] Loading GSM8K dataset...")
     
     try:
-        dataset_raw = load_dataset("openai/gsm8k", "main", split="train")
+        # Load token
+        token = None
+        if os.path.exists("token.txt"):
+            try:
+                with open("token.txt", "r") as f:
+                    token = f.read().strip()
+            except:
+                pass
+
+        dataset_raw = load_dataset("openai/gsm8k", "main", split="train", token=token)
         
         all_texts = []
         for i, item in enumerate(dataset_raw):
-            if i >= config.max_samples:
+            if config.max_samples is not None and i >= config.max_samples:
                 break
             
             question = item.get('question', '')
@@ -451,12 +469,12 @@ def main():
     
     # Save tokenizer and history
     print(f"\n[FINAL] Saving tokenizer and training history...")
-    tokenizer.save('gsm8k_tokenizer.json')
+    tokenizer.save('custom_tokenizer.json')
     
     with open('gsm8k_training_history.json', 'w') as f:
         json.dump(all_history, f, indent=2)
     
-    print(f"  ✓ Saved tokenizer to gsm8k_tokenizer.json")
+    print(f"  ✓ Saved tokenizer to custom_tokenizer.json")
     print(f"  ✓ Saved training history to gsm8k_training_history.json")
     
     # Final summary
@@ -464,9 +482,9 @@ def main():
     print(" ✓ ALL TRAINING COMPLETED SUCCESSFULLY!")
     print("=" * 70)
     print(f"\nResults:")
-    print(f"  PRO  Model: VelCore-Pro.pt  (Final loss: {results['pro']:.4f})")
-    print(f"  LITE Model: VelCore-Lite.pt (Final loss: {results['lite']:.4f})")
-    print(f"\nTokenizer: gsm8k_tokenizer.json")
+    print(f"  PRO  Model: Pro-model.pt  (Final loss: {results['pro']:.4f})")
+    print(f"  LITE Model: Lite-model.pt (Final loss: {results['lite']:.4f})")
+    print(f"\nTokenizer: custom_tokenizer.json")
     print("=" * 70 + "\n")
 
 

@@ -84,8 +84,8 @@ if __name__ == "__main__":
     
     # Step 6: Save models and tokenizer
     print("\n[STEP 6] Saving models and tokenizer...")
-    save_model(pro_model, tokenizer, 'VelCore-Pro.pt')
-    save_model(lite_model, tokenizer, 'VelCore-Lite.pt')
+    save_model(pro_model, tokenizer, 'Pro-model.pt')
+    save_model(lite_model, tokenizer, 'Lite-model.pt')
     tokenizer.save('custom_tokenizer.json')
     
     # Step 7: Test Lite model

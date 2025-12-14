@@ -164,7 +164,7 @@ def print_evaluation_results(metrics, predictions, labels):
 # ==================== Main Evaluation ====================
 if __name__ == "__main__":
     print("\n" + "="*70)
-    print("VELCORE MODEL - EVALUATION")
+    print("MODEL - EVALUATION")
     print("="*70)
     
     # Configuration
@@ -274,8 +274,8 @@ if __name__ == "__main__":
         print("CHECKING FOR SAVED MODELS")
         print("-"*70)
         
-        pro_model_path = 'VelCore-Pro.pt'
-        lite_model_path = 'VelCore-Lite.pt'
+        pro_model_path = 'Pro-model.pt'
+        lite_model_path = 'Lite-model.pt'
         
         if os.path.exists(pro_model_path):
             print(f"\n✓ Found saved Pro model: {pro_model_path}")

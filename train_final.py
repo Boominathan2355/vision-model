@@ -26,18 +26,28 @@ class TuringReasoningDataset(Dataset):
         
         print(f"Loading Turing-Open-Reasoning dataset (max {max_samples} samples)...")
         
+        # Load token
+        token = None
+        if os.path.exists("token.txt"):
+            try:
+                with open("token.txt", "r") as f:
+                    token = f.read().strip()
+            except:
+                pass
+
         # Load dataset from Hugging Face
         try:
             dataset = load_dataset(
-                "TuringEnterprises/Turing-Open-Reasoning",
-                split=split
+                "open-thoughts/Turing-Open-Reasoning",
+                split=split,
+                token=token
             )
             
             # Process samples
             self.samples = []
             count = 0
             for item in dataset:
-                if count >= max_samples:
+                if max_samples is not None and count >= max_samples:
                     break
                     
                 # Extract fields
@@ -161,7 +171,7 @@ class TrainingConfig:
         self.gradient_accumulation_steps = 4  # Simulate batch size of 8
         self.num_epochs = 15  # Reasonable for trillion scale
         self.learning_rate = 5e-5  # Lower LR for massive model
-        self.max_samples = 1000  # Turing-Open-Reasoning has ~300-1000 samples (use all)
+        self.max_samples = None  # None = use full dataset
         self.save_every_epoch = True
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.warmup_steps = 200  # Extended warmup for stability with huge model
@@ -388,13 +398,16 @@ def train_single_model(model_type: str, tokenizer, dataset, config: TrainingConf
     )
     
     # Build or load model
-    checkpoint_name = f'VelCore-{model_type.capitalize()}.pt'
+    if model_type == 'pro':
+        checkpoint_name = 'Pro-model.pt'
+    else:
+        checkpoint_name = 'Lite-model.pt'
     
     if config.resume_from_checkpoint and os.path.exists(checkpoint_name):
         print(f"\n[LOAD] Loading existing {model_type} model from checkpoint...")
         print(f"  Checkpoint found: {checkpoint_name}")
         try:
-            model = load_model(checkpoint_name, tokenizer, mode=model_type)
+            model, _ = load_model(checkpoint_name, tokenizer, mode=model_type)
             print(f"  ✓ Model loaded from checkpoint - resuming training")
         except Exception as e:
             print(f"  ⚠ Failed to load checkpoint: {e}")
@@ -475,12 +488,21 @@ def main():
     print(f"\n[STEP 1] Loading Turing-Open-Reasoning dataset...")
     
     try:
-        dataset_raw = load_dataset("TuringEnterprises/Turing-Open-Reasoning", split="train")
+        # Load token
+        token = None
+        if os.path.exists("token.txt"):
+            try:
+                with open("token.txt", "r") as f:
+                    token = f.read().strip()
+            except:
+                pass
+
+        dataset_raw = load_dataset("open-thoughts/Turing-Open-Reasoning", split="train", token=token)
         
         # Extract all texts from dataset
         all_texts = []
         for i, item in enumerate(dataset_raw):
-            if i >= config.max_samples:
+            if config.max_samples is not None and i >= config.max_samples:
                 break
             
             # Extract fields
@@ -583,8 +605,8 @@ def main():
     print(" ✓ ALL TRAINING COMPLETED SUCCESSFULLY!")
     print("=" * 70)
     print(f"\nResults:")
-    print(f"  PRO  Model: VelCore-Pro.pt  (Final loss: {results['pro']:.4f})")
-    print(f"  LITE Model: VelCore-Lite.pt (Final loss: {results['lite']:.4f})")
+    print(f"  PRO  Model: Pro-model.pt  (Final loss: {results['pro']:.4f})")
+    print(f"  LITE Model: Lite-model.pt (Final loss: {results['lite']:.4f})")
     print(f"\nTokenizer: custom_tokenizer.json")
     print("=" * 70 + "\n")
 
