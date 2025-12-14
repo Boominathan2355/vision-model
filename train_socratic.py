@@ -246,7 +246,7 @@ def train_single_model(model_type: str, tokenizer, dataset, config: TrainingConf
         num_workers=0
     )
     
-    checkpoint_name = f'VelCore-{model_type.capitalize()}_socratic.pt'
+    checkpoint_name = f'VelCore-{model_type.capitalize()}.pt'
     
     if config.resume_from_checkpoint and os.path.exists(checkpoint_name):
         print(f"\n[LOAD] Loading existing {model_type} model from checkpoint...")
@@ -407,8 +407,8 @@ def main():
     print(" ✓ ALL TRAINING COMPLETED SUCCESSFULLY!")
     print("=" * 70)
     print(f"\nResults:")
-    print(f"  PRO  Model: VelCore-Pro_socratic.pt  (Final loss: {results['pro']:.4f})")
-    print(f"  LITE Model: VelCore-Lite_socratic.pt (Final loss: {results['lite']:.4f})")
+    print(f"  PRO  Model: VelCore-Pro.pt  (Final loss: {results['pro']:.4f})")
+    print(f"  LITE Model: VelCore-Lite.pt (Final loss: {results['lite']:.4f})")
     print(f"\nTokenizer: socratic_tokenizer.json")
     print("=" * 70 + "\n")
 

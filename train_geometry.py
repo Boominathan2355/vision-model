@@ -357,7 +357,7 @@ def train_single_model(model_type: str, tokenizer, dataset, config: TrainingConf
         num_workers=0
     )
     
-    checkpoint_name = f'VelCore-{model_type.capitalize()}_geometry.pt'
+    checkpoint_name = f'VelCore-{model_type.capitalize()}.pt'
     
     if config.resume_from_checkpoint and os.path.exists(checkpoint_name):
         print(f"\n[LOAD] Loading existing {model_type} model from checkpoint...")
