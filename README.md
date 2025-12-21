@@ -53,8 +53,8 @@ pip install -r requirements.txt
 To access gated datasets (e.g., `Turing-Open-Reasoning`, `Simple-English-Conversation`), you must provide a Hugging Face token.
 
 1.  Get your token from [Hugging Face Settings](https://huggingface.co/settings/tokens).
-2.  Create a file named `token.txt` in the root directory.
-3.  Paste your token inside `token.txt` (no spaces or newlines).
+2.  Create a file named `code.txt` in the root directory.
+3.  Paste your token inside `code.txt` (no spaces or newlines).
 
 The training scripts will automatically read this file to authenticate downloads.
 
@@ -152,7 +152,7 @@ vision-model/
 │
 └── Data & Config
     ├── custom_tokenizer.json     # Tokenizer configuration
-    ├── token.txt                 # API tokens (not version controlled)
+    ├── code.txt                  # API tokens (not version controlled)
     └── .venv/                    # Virtual environment (not version controlled)
 ```
 
@@ -175,7 +175,7 @@ python train_socratic.py   # Socratic reasoning training
 python train_conversation.py  # Conversational training
 ```
 
-> **Note**: All scripts support full dataset training (`max_samples=None`) and authenticated downloading via `token.txt`.
+> **Note**: All scripts support full dataset training (`max_samples=None`) and authenticated downloading via `code.txt`.
 
 ## 💡 Example Scripts
 

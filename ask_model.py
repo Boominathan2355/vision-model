@@ -11,11 +11,12 @@ from builder import VelCoreModelBuilder, load_model
 # CONFIGURATION
 # ============================================================
 
-DEFAULT_CHECKPOINT = "Pro-model.pt"
+DEFAULT_CHECKPOINT = "lite-model.pt"
 TOKENIZER_PATH = "custom_tokenizer.json"
-MAX_NEW_TOKENS = 200
-TEMPERATURE = 0.7
+MAX_NEW_TOKENS = None
+TEMPERATURE = 0.6
 TOP_K = 50
+REPETITION_PENALTY = 1.2
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # ============================================================
@@ -50,7 +51,7 @@ def generate_response(
         pad_id = tokenizer.vocab['[PAD]']
         input_ids = [t for t in input_ids if t != pad_id]
 
-    # Remove trailing SEP token if present (so model continues generating)
+    # Remove trailing SEP token if present
     if hasattr(tokenizer, 'vocab') and '[SEP]' in tokenizer.vocab:
         sep_id = tokenizer.vocab['[SEP]']
         if input_ids and input_ids[-1] == sep_id:
@@ -58,59 +59,96 @@ def generate_response(
 
     # Convert to tensor
     curr_ids = torch.tensor([input_ids], dtype=torch.long, device=DEVICE)
-    
-    # Dummy image for the multimodal architecture (since we are doing text-only interaction)
     dummy_image = torch.zeros(1, 3, 224, 224, device=DEVICE)
 
     print("Assistant: ", end="", flush=True)
     generated_ids = []
     
-    for _ in range(max_tokens):
-        # 2. Forward Pass
+    # State for thinking/reasoning
+    is_thinking = False
+    is_reasoning = False
+    
+    # Get special token IDs
+    think_start_id = tokenizer.vocab.get('[THINK_START]', -1)
+    think_end_id = tokenizer.vocab.get('[THINK_END]', -1)
+    reason_start_id = tokenizer.vocab.get('[REASON_START]', -1)
+    reason_end_id = tokenizer.vocab.get('[REASON_END]', -1)
+    sep_id = tokenizer.vocab.get('[SEP]', -1)
+    
+    # Use a large number if max_tokens is None
+    num_to_generate = max_tokens if max_tokens is not None else 2048
+
+    for i in range(num_to_generate):
         outputs = model(text_input=curr_ids, image_input=dummy_image)
-        
-        # 3. Get Logits
         logits = outputs["reasoning_logits"][:, -1, :]
         
-        # 4. Filter / Sample
+        # Penalize UNK
         if hasattr(tokenizer, 'vocab') and '[UNK]' in tokenizer.vocab:
             logits[:, tokenizer.vocab['[UNK]']] = -float('inf')
 
-        logits = logits / temperature
+        # Apply repetition penalty
+        for prev_token_id in set(generated_ids):
+            if logits[0, prev_token_id] > 0:
+                logits[0, prev_token_id] /= REPETITION_PENALTY
+            else:
+                logits[0, prev_token_id] *= REPETITION_PENALTY
+
+        logits = logits / (temperature if temperature > 0 else 1.0)
         
-        # Top-K
         if top_k > 0:
             v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
             logits[logits < v[:, [-1]]] = -float('inf')
         
         probs = F.softmax(logits, dim=-1)
         next_token_id = torch.multinomial(probs, num_samples=1).item()
-        
-        # Debug print
-        # print(f"[{next_token_id}:{tokenizer.decode([next_token_id])}]", end=" ", flush=True)
 
-        # 5. Stop Conditions
-        if hasattr(tokenizer, 'vocab'):
-            if next_token_id == tokenizer.vocab.get('[SEP]', -1):
-                break
-            if next_token_id == tokenizer.vocab.get('[PAD]', -1):
-                break
-        
-        # 6. Append
-        generated_ids.append(next_token_id)
-        
-        # Efficiently append to input for next step
-        curr_ids = torch.cat([curr_ids, torch.tensor([[next_token_id]], device=DEVICE)], dim=1)
-        
-        # Stop if we hit max length
-        if len(generated_ids) >= max_tokens:
+        # Handle Thinking / Reasoning Tokens
+        if next_token_id == think_start_id:
+            is_thinking = True
+            print("\n[THINKING] ", end="", flush=True)
+            curr_ids = torch.cat([curr_ids, torch.tensor([[next_token_id]], device=DEVICE)], dim=1)
+            continue
+        elif next_token_id == think_end_id:
+            is_thinking = False
+            print("\n", end="", flush=True)
+            curr_ids = torch.cat([curr_ids, torch.tensor([[next_token_id]], device=DEVICE)], dim=1)
+            continue
+        elif next_token_id == reason_start_id:
+            is_reasoning = True
+            print("[REASONING] ", end="", flush=True)
+            curr_ids = torch.cat([curr_ids, torch.tensor([[next_token_id]], device=DEVICE)], dim=1)
+            continue
+        elif next_token_id == reason_end_id:
+            is_reasoning = False
+            curr_ids = torch.cat([curr_ids, torch.tensor([[next_token_id]], device=DEVICE)], dim=1)
+            continue
+            
+        # Stop condition
+        if next_token_id == sep_id:
             break
             
-    # Final decode
-    full_response = tokenizer.decode(generated_ids)
-    print(full_response)
+        # Decode and Print
+        token_text = tokenizer.decode([next_token_id])
+        if token_text:
+            # Punctuation spacing fix
+            if token_text in ".,!?;:" and len(generated_ids) > 0:
+                print("\b" + token_text + " ", end="", flush=True)
+            else:
+                print(token_text + " ", end="", flush=True)
+                
+            # Stop if the model starts generating dialogue markers
+            # More robust check for multi-token labels
+            combined_recent_text = tokenizer.decode(generated_ids[-5:])
+            if "User:" in combined_recent_text or "Assistant:" in combined_recent_text:
+                # Remove the label tokens from output before finishing
+                print("\b" * (len(token_text) + 1), end="", flush=True)
+                break
+        
+        generated_ids.append(next_token_id)
+        curr_ids = torch.cat([curr_ids, torch.tensor([[next_token_id]], device=DEVICE)], dim=1)
+        
     print("\n")
-    return full_response
+    return tokenizer.decode(generated_ids)
 
 # ============================================================
 # MAIN

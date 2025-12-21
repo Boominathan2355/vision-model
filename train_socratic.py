@@ -28,9 +28,9 @@ class GSM8KSocraticDataset(Dataset):
         
         # Load token
         token = None
-        if os.path.exists("token.txt"):
+        if os.path.exists("code.txt"):
             try:
-                with open("token.txt", "r") as f:
+                with open("code.txt", "r") as f:
                     token = f.read().strip()
             except:
                 pass
@@ -326,9 +326,9 @@ def main():
     try:
         # Load token
         token = None
-        if os.path.exists("token.txt"):
+        if os.path.exists("code.txt"):
             try:
-                with open("token.txt", "r") as f:
+                with open("code.txt", "r") as f:
                     token = f.read().strip()
             except:
                 pass

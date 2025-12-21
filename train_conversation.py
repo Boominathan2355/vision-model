@@ -13,12 +13,13 @@ from builder import VelCoreModelBuilder, save_model, load_model
 # CONFIG
 # ============================================================
 
-HF_TOKEN_PATH = r"D:/model/token.txt"
-MODEL_PATH = "Pro-model.pt"
+HF_TOKEN_PATH = r"D:/model/code.txt"
+LITE_MODEL_PATH = "Lite-model.pt"
+PRO_MODEL_PATH = "Pro-model.pt"
 TOKENIZER_PATH = "custom_tokenizer.json"
 
 BATCH_SIZE = 4
-EPOCHS = 2
+EPOCHS = 10
 LR = 3e-5
 MAX_LENGTH = 512
 
@@ -133,10 +134,12 @@ def causal_lm_loss(logits, input_ids):
 # TRAIN
 # ============================================================
 
-def train():
+def train(model_type="pro"):
     print("\n" + "=" * 70)
-    print(" VELCORE TRAINING — HF AUTH DATASET")
+    print(f" VELCORE TRAINING — {model_type.upper()} MODEL")
     print("=" * 70)
+
+    model_path = PRO_MODEL_PATH if model_type == "pro" else LITE_MODEL_PATH
 
     # ---------------- TOKENIZER ----------------
     if os.path.exists(TOKENIZER_PATH):
@@ -177,12 +180,15 @@ def train():
     )
 
     # ---------------- MODEL ----------------
-    if os.path.exists(MODEL_PATH):
-        model, _ = load_model(MODEL_PATH, tokenizer, mode="pro")
-        print("✓ Loaded model (resume)")
+    if os.path.exists(model_path):
+        model, _ = load_model(model_path, tokenizer, mode=model_type)
+        print(f"✓ Loaded {model_type} model (resume)")
     else:
-        model = VelCoreModelBuilder.build_pro_model(len(tokenizer.vocab))
-        print("✓ Built new model")
+        if model_type == "pro":
+            model = VelCoreModelBuilder.build_pro_model(len(tokenizer.vocab))
+        else:
+            model = VelCoreModelBuilder.build_lite_model(len(tokenizer.vocab))
+        print(f"✓ Built new {model_type} model")
 
     model = model.to(DEVICE)
     model.train()
@@ -215,8 +221,8 @@ def train():
         avg_loss = total_loss / len(dataloader)
         print(f"\nEpoch {epoch+1} | Avg Loss: {avg_loss:.4f}")
 
-        save_model(model, tokenizer, MODEL_PATH)
-        print("✓ Checkpoint saved")
+        save_model(model, tokenizer, model_path)
+        print(f"✓ Checkpoint saved: {model_path}")
 
     print("\n✅ TRAINING COMPLETE")
 
@@ -225,4 +231,8 @@ def train():
 # ============================================================
 
 if __name__ == "__main__":
-    train()
+    # Train Lite Model
+    train(model_type="lite")
+    
+    # Train Pro Model
+    train(model_type="pro")

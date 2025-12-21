@@ -3,6 +3,8 @@ import torch.nn as nn
 from torchvision import models, transforms
 from PIL import Image
 from typing import Dict, Optional
+import math
+import torch.nn.functional as F
 
 # ==================== Image Preprocessor ====================
 class ImagePreprocessor:
@@ -19,14 +21,99 @@ class ImagePreprocessor:
         image = Image.open(image_path).convert('RGB')
         return self.transform(image).unsqueeze(0)
 
-# ==================== Model Architecture ====================
-class ThinkingLayer(nn.Module):
-    """Layer for thinking/reasoning process"""
+# ==================== Advanced Modules ====================
+class RMSNorm(nn.Module):
+    """Root Mean Square Normalization for faster, more stable training"""
+    def __init__(self, dim: int, eps: float = 1e-6):
+        super().__init__()
+        self.eps = eps
+        self.weight = nn.Parameter(torch.ones(dim))
+
+    def _norm(self, x):
+        return x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
+
+    def forward(self, x):
+        output = self._norm(x.float()).type_as(x)
+        return output * self.weight
+
+def precompute_freqs_cis(dim: int, end: int, theta: float = 10000.0):
+    """Precompute the frequency tensor for RoPE"""
+    freqs = 1.0 / (theta ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
+    t = torch.arange(end, device=freqs.device)
+    freqs = torch.outer(t, freqs).float()
+    freqs_cis = torch.polar(torch.ones_like(freqs), freqs)
+    return freqs_cis
+
+def reshape_for_broadcast(freqs_cis: torch.Tensor, x: torch.Tensor):
+    """Reshape freqs_cis for broadcasting with x"""
+    ndim = x.ndim
+    assert 0 <= 1 < ndim
+    assert freqs_cis.shape == (x.shape[1], x.shape[-1])
+    shape = [d if i == 1 or i == ndim - 1 else 1 for i, d in enumerate(x.shape)]
+    return freqs_cis.view(*shape)
+
+def apply_rotary_emb(xq: torch.Tensor, xk: torch.Tensor, freqs_cis: torch.Tensor):
+    """Apply rotary embeddings to query and key tensors"""
+    xq_ = torch.view_as_complex(xq.float().reshape(*xq.shape[:-1], -1, 2))
+    xk_ = torch.view_as_complex(xk.float().reshape(*xk.shape[:-1], -1, 2))
+    freqs_cis = reshape_for_broadcast(freqs_cis, xq_)
+    xq_out = torch.view_as_real(xq_ * freqs_cis).flatten(3)
+    xk_out = torch.view_as_real(xk_ * freqs_cis).flatten(3)
+    return xq_out.type_as(xq), xk_out.type_as(xk)
+
+class RoPEAttention(nn.Module):
+    """Multi-head attention with Rotary Positional Embeddings"""
     def __init__(self, hidden_size: int, num_heads: int = 8, dropout: float = 0.1):
         super().__init__()
-        self.mha = nn.MultiheadAttention(hidden_size, num_heads, dropout=dropout, batch_first=True)
-        self.norm1 = nn.LayerNorm(hidden_size)
-        self.norm2 = nn.LayerNorm(hidden_size)
+        self.hidden_size = hidden_size
+        self.num_heads = num_heads
+        self.head_dim = hidden_size // num_heads
+        assert self.head_dim * num_heads == hidden_size
+
+        self.wq = nn.Linear(hidden_size, hidden_size, bias=False)
+        self.wk = nn.Linear(hidden_size, hidden_size, bias=False)
+        self.wv = nn.Linear(hidden_size, hidden_size, bias=False)
+        self.wo = nn.Linear(hidden_size, hidden_size, bias=False)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x: torch.Tensor, freqs_cis: Optional[torch.Tensor] = None, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+        bsz, seqlen, _ = x.shape
+        xq, xk, xv = self.wq(x), self.wk(x), self.wv(x)
+
+        xq = xq.view(bsz, seqlen, self.num_heads, self.head_dim)
+        xk = xk.view(bsz, seqlen, self.num_heads, self.head_dim)
+        xv = xv.view(bsz, seqlen, self.num_heads, self.head_dim)
+
+        if freqs_cis is not None:
+            xq, xk = apply_rotary_emb(xq, xk, freqs_cis)
+
+        xq = xq.transpose(1, 2)
+        xk = xk.transpose(1, 2)
+        xv = xv.transpose(1, 2)
+
+        scores = torch.matmul(xq, xk.transpose(2, 3)) / math.sqrt(self.head_dim)
+        
+        if mask is not None:
+            # Convert boolean mask to additive mask
+            # mask: [batch, seqlen] -> [batch, 1, 1, seqlen]
+            mask_expanded = mask.unsqueeze(1).unsqueeze(2)
+            scores = scores.masked_fill(mask_expanded, -1e9)
+
+        scores = F.softmax(scores.float(), dim=-1).type_as(xq)
+        scores = self.dropout(scores)
+        
+        output = torch.matmul(scores, xv)
+        output = output.transpose(1, 2).contiguous().view(bsz, seqlen, -1)
+        return self.wo(output)
+
+# ==================== Model Architecture ====================
+class ThinkingLayer(nn.Module):
+    """Layer for thinking/reasoning process with RoPE"""
+    def __init__(self, hidden_size: int, num_heads: int = 8, dropout: float = 0.1):
+        super().__init__()
+        self.attention = RoPEAttention(hidden_size, num_heads, dropout=dropout)
+        self.norm1 = RMSNorm(hidden_size)
+        self.norm2 = RMSNorm(hidden_size)
         self.ffn = nn.Sequential(
             nn.Linear(hidden_size, hidden_size * 4),
             nn.GELU(),
@@ -35,9 +122,9 @@ class ThinkingLayer(nn.Module):
             nn.Dropout(dropout)
         )
     
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
-        # Self-attention for thinking
-        attn_out, _ = self.mha(x, x, x, key_padding_mask=mask)
+    def forward(self, x: torch.Tensor, freqs_cis: Optional[torch.Tensor] = None, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+        # Self-attention for thinking with RoPE
+        attn_out = self.attention(x, freqs_cis, mask)
         x = self.norm1(x + attn_out)
         
         # Feed-forward
@@ -64,13 +151,11 @@ class ReasoningModule(nn.Module):
             nn.Sigmoid()
         )
     
-    def forward(self, x: torch.Tensor, context: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, context: torch.Tensor, freqs_cis: Optional[torch.Tensor] = None, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
         # Initial reasoning state
         reason_state = x
-        batch_size = x.shape[0]
         
         # Project context to match reasoning state shape
-        # Take mean across sequence dimension if needed
         if context.shape[1] != reason_state.shape[1]:
             context_proj = context.mean(dim=1, keepdim=True).expand_as(reason_state)
         else:
@@ -78,13 +163,13 @@ class ReasoningModule(nn.Module):
         
         context_proj = self.context_projection(context_proj)
         
-        for i, layer in enumerate(self.thinking_layers):
+        for layer in self.thinking_layers:
             # Combine with context
             combined = torch.cat([reason_state, context_proj], dim=-1)
             gate = self.reason_gate(combined)
             
-            # Thinking step
-            reason_state = layer(reason_state, mask)
+            # Thinking step with RoPE
+            reason_state = layer(reason_state, freqs_cis, mask)
             
             # Gated update
             reason_state = gate * reason_state + (1 - gate) * x
@@ -116,9 +201,8 @@ class SimpleFusionLayer(nn.Module):
             nn.Dropout(dropout)
         )
         
-        # Layer normalization for stability
-        self.norm1 = nn.LayerNorm(hidden_size)
-        self.norm2 = nn.LayerNorm(hidden_size)
+        self.norm1 = RMSNorm(hidden_size)
+        self.norm2 = RMSNorm(hidden_size)
         
         # Gradient scaling for stability
         self.scale = nn.Parameter(torch.ones(1) * 0.1)
@@ -162,27 +246,29 @@ class MultimodalEncoder(nn.Module):
         nn.init.normal_(self.text_embedding.weight, mean=0.0, std=0.02)
         
         self.text_pos_encoding = nn.Parameter(torch.randn(1, config['max_seq_len'], config['hidden_size']) * 0.02)
-        self.embedding_norm = nn.LayerNorm(config['hidden_size'], eps=1e-6)
+        self.embedding_norm = RMSNorm(config['hidden_size'], eps=1e-6)
         
-        # Image encoder - initialized from scratch (no pretrained weights)
+        # Image encoder - Vision Transformer (Claude-style)
         if config['mode'] == 'pro':
-            self.visual_encoder = models.resnet50(weights=None)
-            visual_features = 2048
+            self.visual_encoder = models.vit_b_16(weights=None)
+            # Remove classification heads
+            self.visual_encoder.heads = nn.Identity()
+            visual_features = 768
         else:  # lite
-            self.visual_encoder = models.resnet18(weights=None)
-            visual_features = 512
+            self.visual_encoder = models.vit_b_32(weights=None)
+            # Remove classification heads
+            self.visual_encoder.heads = nn.Identity()
+            visual_features = 768
         
-        # Remove classification head
-        self.visual_encoder = nn.Sequential(*list(self.visual_encoder.children())[:-1])
         self.visual_projection = nn.Linear(visual_features, config['hidden_size'])
         # Initialize projection properly
         nn.init.xavier_uniform_(self.visual_projection.weight)
         nn.init.zeros_(self.visual_projection.bias)
-        self.visual_norm = nn.LayerNorm(config['hidden_size'], eps=1e-6)
+        self.visual_norm = RMSNorm(config['hidden_size'], eps=1e-6)
         
         # Layer norms before attention for stability
-        self.pre_cross_attn_norm_text = nn.LayerNorm(config['hidden_size'], eps=1e-6)
-        self.pre_cross_attn_norm_visual = nn.LayerNorm(config['hidden_size'], eps=1e-6)
+        self.pre_cross_attn_norm_text = RMSNorm(config['hidden_size'], eps=1e-6)
+        self.pre_cross_attn_norm_visual = RMSNorm(config['hidden_size'], eps=1e-6)
         
         # Cross-modal attention with proper dropout
         self.cross_attn = nn.MultiheadAttention(
@@ -205,7 +291,7 @@ class MultimodalEncoder(nn.Module):
         
         # Final fusion projection
         self.fusion_projection = nn.Sequential(
-            nn.LayerNorm(config['hidden_size']),
+            RMSNorm(config['hidden_size']),
             nn.Linear(config['hidden_size'], config['hidden_size']),
             nn.GELU(),
             nn.Dropout(0.1)
@@ -214,7 +300,8 @@ class MultimodalEncoder(nn.Module):
         # Thinking and reasoning module
         self.reasoning = ReasoningModule(
             config['hidden_size'],
-            num_steps=config['reasoning_steps']
+            num_steps=config['reasoning_steps'],
+            num_heads=config['num_heads']
         )
         
         # Apply weight initialization
@@ -227,24 +314,23 @@ class MultimodalEncoder(nn.Module):
                 nn.init.xavier_uniform_(module.weight, gain=0.02)
                 if module.bias is not None:
                     nn.init.zeros_(module.bias)
-            elif isinstance(module, nn.LayerNorm):
+            elif isinstance(module, RMSNorm):
                 nn.init.ones_(module.weight)
-                nn.init.zeros_(module.bias)
     
     def forward(self, text_input: torch.Tensor, image_input: torch.Tensor) -> Dict[str, torch.Tensor]:
         batch_size = text_input.shape[0]
+        seq_len = text_input.shape[1]
         
         # Encode text with normalization
         text_emb = self.text_embedding(text_input)
-        text_emb = text_emb + self.text_pos_encoding[:, :text_input.shape[1], :]
+        text_emb = text_emb + self.text_pos_encoding[:, :seq_len, :]
         text_emb = self.embedding_norm(text_emb)
         # Clamp to prevent extreme values
         text_emb = torch.clamp(text_emb, min=-10.0, max=10.0)
         
-        # Encode image with normalization
-        visual_features = self.visual_encoder(image_input)
-        visual_features = visual_features.view(batch_size, -1)
-        visual_emb = self.visual_projection(visual_features)
+        # Encode image with normalization (Vision Transformer)
+        visual_emb = self.visual_encoder(image_input)
+        visual_emb = self.visual_projection(visual_emb)
         visual_emb = self.visual_norm(visual_emb)
         visual_emb = torch.clamp(visual_emb, min=-10.0, max=10.0)
         visual_emb = visual_emb.unsqueeze(1)  # Add sequence dimension
@@ -269,20 +355,26 @@ class MultimodalEncoder(nn.Module):
             fused = torch.clamp(fused, min=-10.0, max=10.0)
         
         # Final projection with clamping
-        fused = self.fusion_projection(fused[:, :text_emb.shape[1], :])
+        fused = self.fusion_projection(fused[:, :seq_len, :])
         fused = torch.clamp(fused, min=-10.0, max=10.0)
         fused = torch.cat([fused, visual_emb], dim=1)
         
-        # Thinking and reasoning with mask
-        text_mask = (text_input == 0)  # True for padding tokens
-        reasoned = self.reasoning(fused[:, :text_emb.shape[1]], fused, text_mask)
+        # Thinking and reasoning with mask and RoPE
+        # 1. Precompute RoPE frequencies for current sequence
+        head_dim = self.hidden_size // self.config['num_heads']
+        freqs_cis = precompute_freqs_cis(head_dim, seq_len).to(text_input.device)
+        
+        # 2. Reasoning with mask
+        text_mask = (text_input == 0).to(torch.bool) if (text_input == 0).any() else None
+        reasoned = self.reasoning(fused[:, :seq_len], fused, freqs_cis, text_mask)
         reasoned = torch.clamp(reasoned, min=-10.0, max=10.0)
         
         return {
             'text_features': text_emb,
             'visual_features': visual_emb,
             'fused_features': fused,
-            'reasoned_features': reasoned
+            'reasoned_features': reasoned,
+            'freqs_cis': freqs_cis
         }
 
 
@@ -296,7 +388,7 @@ class ImageGenerator(nn.Module):
         # Project text features to latent space
         self.text_projector = nn.Sequential(
             nn.Linear(hidden_size, latent_dim),
-            nn.LayerNorm(latent_dim),
+            RMSNorm(latent_dim),
             nn.LeakyReLU(0.2),
             nn.Linear(latent_dim, latent_dim * 4 * 4)  # 4x4 spatial
         )
@@ -398,7 +490,7 @@ class VelCoreModel(nn.Module):
         
         # Task heads with proper initialization
         self.classification_head = nn.Sequential(
-            nn.LayerNorm(config['hidden_size'], eps=1e-6),
+            RMSNorm(config['hidden_size'], eps=1e-6),
             nn.Linear(config['hidden_size'], config['hidden_size'] // 2),
             nn.GELU(),
             nn.Dropout(0.1),
@@ -411,7 +503,7 @@ class VelCoreModel(nn.Module):
                 nn.init.zeros_(module.bias)
         
         # Text generation head (for reasoning output) with normalization
-        self.generation_norm = nn.LayerNorm(config['hidden_size'], eps=1e-6)
+        self.generation_norm = RMSNorm(config['hidden_size'], eps=1e-6)
         self.generation_head = nn.Linear(config['hidden_size'], config['vocab_size'])
         # Initialize with small weights to prevent large logits
         nn.init.normal_(self.generation_head.weight, mean=0.0, std=0.02)
