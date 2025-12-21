@@ -32,7 +32,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 if not os.path.exists(HF_TOKEN_PATH):
     raise FileNotFoundError(f"HF token not found: {HF_TOKEN_PATH}")
 
-with open(HF_TOKEN_PATH, "r", encoding="utf-8") as f:
+with open(HF_TOKEN_PATH, "r", encoding="utf-8-sig") as f:
     HF_TOKEN = f.read().strip()
 
 if not HF_TOKEN:
@@ -62,20 +62,38 @@ def format_item(item):
     return None
 
 class ConversationDataset(Dataset):
-    def __init__(self, tokenizer, split="train"):
+    def __init__(self, tokenizer, split="train", max_samples=5000):
         self.tokenizer = tokenizer
         self.samples = []
 
-        dataset = load_dataset(
+        print(f"Loading conversational data...")
+        conv_dataset = load_dataset(
             "Xerv-AI/Simple-English-Conversation",
             split=split,
             token=HF_TOKEN
         )
 
-        for item in dataset:
+        for item in conv_dataset:
             text = format_item(item)
             if text:
                 self.samples.append(text)
+
+        print(f"Loading TinyStories for coherence (max {max_samples} samples)...")
+        story_dataset = load_dataset(
+            "roneneldan/TinyStories",
+            split="train",
+            streaming=True,
+            token=HF_TOKEN
+        )
+
+        count = 0
+        for item in story_dataset:
+            if count >= max_samples:
+                break
+            text = format_item(item)
+            if text:
+                self.samples.append(text)
+                count += 1
 
         # critical clarification supervision
         self.samples.extend([
@@ -84,7 +102,7 @@ class ConversationDataset(Dataset):
             "User: Then explain briefate today\nAssistant: I do not understand the question."
         ])
 
-        print(f"✓ Loaded {len(self.samples)} samples")
+        print(f"✓ Total loaded: {len(self.samples)} samples")
 
     def __len__(self):
         return len(self.samples)
@@ -141,34 +159,17 @@ def train(model_type="pro"):
 
     model_path = PRO_MODEL_PATH if model_type == "pro" else LITE_MODEL_PATH
 
-    # ---------------- TOKENIZER ----------------
-    if os.path.exists(TOKENIZER_PATH):
-        tokenizer = CustomTokenizer(vocab_path=TOKENIZER_PATH, max_length=MAX_LENGTH)
-        print("✓ Loaded tokenizer")
-    else:
-        raw = load_dataset(
-            "Xerv-AI/Simple-English-Conversation",
-            split="train",
-            token=HF_TOKEN
-        )
-
-        texts = []
-        for item in raw:
-            text = format_item(item)
-            if text:
-                texts.append(text)
-
-        texts.extend([
-            "I do not understand. Please clarify.",
-            "Please give more details."
-        ])
-
-        tokenizer = CustomTokenizer(max_length=MAX_LENGTH)
-        tokenizer.build_vocab(texts)
-        tokenizer.save(TOKENIZER_PATH)
-        print("✓ Built tokenizer")
-
-    print(f"Vocab size: {len(tokenizer.vocab)}")
+    # ---------------- TOKENIZER (Always Rebuild for New Data) ----------------
+    print("Rebuilding tokenizer for expanded dataset...")
+    
+    # Collect all text to build fresh vocab
+    dataset_for_vocab = ConversationDataset(None) # Temporary for collecting text
+    all_texts = dataset_for_vocab.samples
+    
+    tokenizer = CustomTokenizer(max_length=MAX_LENGTH)
+    tokenizer.build_vocab(all_texts, min_freq=2)
+    tokenizer.save(TOKENIZER_PATH)
+    print(f"✓ Built fresh tokenizer. Vocab size: {len(tokenizer.vocab)}")
 
     # ---------------- DATASET ----------------
     dataset = ConversationDataset(tokenizer)
@@ -221,8 +222,8 @@ def train(model_type="pro"):
         avg_loss = total_loss / len(dataloader)
         print(f"\nEpoch {epoch+1} | Avg Loss: {avg_loss:.4f}")
 
-        save_model(model, tokenizer, model_path)
-        print(f"✓ Checkpoint saved: {model_path}")
+        save_model(model, tokenizer, model_path, epoch=epoch + 1)
+        print(f"✓ Checkpoint updated: {model_path} (Epoch {epoch+1})")
 
     print("\n✅ TRAINING COMPLETE")
 

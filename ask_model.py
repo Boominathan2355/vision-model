@@ -11,7 +11,7 @@ from builder import VelCoreModelBuilder, load_model
 # CONFIGURATION
 # ============================================================
 
-DEFAULT_CHECKPOINT = "lite-model.pt"
+DEFAULT_CHECKPOINT = "pro-model.pt"
 TOKENIZER_PATH = "custom_tokenizer.json"
 MAX_NEW_TOKENS = None
 TEMPERATURE = 0.6

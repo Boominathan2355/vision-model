@@ -103,24 +103,26 @@ class VelCoreModelBuilder:
         elif isinstance(module, nn.Embedding):
             nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
-def save_model(model: VelCoreModel, tokenizer, path: str = 'Pro-model.pt', dynamic_config: Optional[Dict] = None):
+def save_model(model: VelCoreModel, tokenizer, path: str = 'Pro-model.pt', epoch: Optional[int] = None, dynamic_config: Optional[Dict] = None):
     """Save model with configuration, weights, and metadata"""
     save_data = {
-        'model_state_dict': model.state_dict(),
-        'tokenizer_vocab': tokenizer.vocab,
+        'state_dict': model.state_dict(),
+        'vocab': tokenizer.vocab,
         'tokenizer_max_length': tokenizer.max_length,
         'tokenizer_thinking_tokens': tokenizer.thinking_tokens,
         'mode': model.mode,
         'config': model.config,
-        'model_weights': {name: param.clone().detach() for name, param in model.named_parameters()},
+        'epoch': epoch,
         'timestamp': torch.tensor([]).to(torch.device('cpu')),  # Placeholder for timestamp
         'dynamic_config': dynamic_config or {}
     }
     
     torch.save(save_data, path)
     print(f"✓ Model saved to {path}")
-    print(f"  - Model state dict: {len(save_data['model_state_dict'])} tensors")
+    print(f"  - State dict: {len(save_data['state_dict'])} tensors")
     print(f"  - Tokenizer vocab: {len(tokenizer.vocab)} tokens")
+    if epoch is not None:
+        print(f"  - Epoch: {epoch}")
     if dynamic_config:
         print(f"  - Dynamic config saved: LR={dynamic_config.get('learning_rate')}, BS={dynamic_config.get('batch_size')}")
 
@@ -146,43 +148,64 @@ def load_model(path: str, tokenizer, mode: str = None) -> VelCoreModel:
     else:
         model = VelCoreModelBuilder.build_lite_model(vocab_size, dynamic_config)
     
-    # Process state dict for shape mismatches (Vocab Adaptation)
-    state_dict = save_data['model_state_dict']
+    # Process state dict (handle both old and new keys)
+    state_dict = save_data.get('state_dict', save_data.get('model_state_dict'))
+    if state_dict is None:
+        state_dict = save_data
     
-    # Check text_embedding mismatch
-    if 'encoder.text_embedding.weight' in state_dict:
-        saved_vocab_size = state_dict['encoder.text_embedding.weight'].shape[0]
+    # Check text_embedding mismatch (handle multiple naming conventions)
+    # Architecture: encoder.text_embedding.weight
+    # Unified Colab: encoder.text_emb.weight
+    emb_key = None
+    if 'encoder.text_embedding.weight' in state_dict: emb_key = 'encoder.text_embedding.weight'
+    elif 'encoder.text_emb.weight' in state_dict: emb_key = 'encoder.text_emb.weight'
+    
+    if emb_key:
+        saved_vocab_size = state_dict[emb_key].shape[0]
         if saved_vocab_size != vocab_size:
-            print(f"  ⚠ Vocab size mismatch: Saved={saved_vocab_size}, Current={vocab_size}. Resizing embeddings...")
+            print(f"  ⚠ Vocab size mismatch: Saved={saved_vocab_size}, Current={vocab_size}. Resizing...")
             
-            # 1. Resize Encoder Embeddings
-            old_emb = state_dict['encoder.text_embedding.weight']
-            new_emb = model.encoder.text_embedding.weight.data.clone()
-            # Copy common vocab indices
-            min_vocab = min(saved_vocab_size, vocab_size)
-            new_emb[:min_vocab] = old_emb[:min_vocab]
-            state_dict['encoder.text_embedding.weight'] = new_emb
+            # 1. Resize Encoder Embeddings (handle both text_embedding and text_emb)
+            old_emb = state_dict[emb_key]
             
-            # 2. Resize Generation Head (if present)
-            if 'generation_head.weight' in state_dict:
-                old_head = state_dict['generation_head.weight']
-                new_head = model.generation_head.weight.data.clone()
-                new_head[:min_vocab] = old_head[:min_vocab]
-                state_dict['generation_head.weight'] = new_head
+            # Find the active attribute name in the model
+            model_emb = getattr(model.encoder, 'text_embedding', getattr(model.encoder, 'text_emb', None))
+            if model_emb:
+                new_emb = model_emb.weight.data.clone()
+                min_vocab = min(saved_vocab_size, vocab_size)
+                new_emb[:min_vocab] = old_emb[:min_vocab]
+                state_dict[emb_key] = new_emb
+            
+            # 2. Resize Generation Head (handle generation_head and gen_head)
+            head_weight_key = 'generation_head.weight' if 'generation_head.weight' in state_dict else ('gen_head.weight' if 'gen_head.weight' in state_dict else None)
+            head_bias_key = 'generation_head.bias' if 'generation_head.bias' in state_dict else ('gen_head.bias' if 'gen_head.bias' in state_dict else None)
+            
+            if head_weight_key:
+                old_head = state_dict[head_weight_key]
+                model_head = getattr(model, 'generation_head', getattr(model, 'gen_head', None))
+                if model_head:
+                    new_head = model_head.weight.data.clone()
+                    new_head[:min_vocab] = old_head[:min_vocab]
+                    state_dict[head_weight_key] = new_head
                 
-            if 'generation_head.bias' in state_dict:
-                old_bias = state_dict['generation_head.bias']
-                new_bias = model.generation_head.bias.data.clone()
-                new_bias[:min_vocab] = old_bias[:min_vocab]
-                state_dict['generation_head.bias'] = new_bias
+            if head_bias_key:
+                old_bias = state_dict[head_bias_key]
+                model_head = getattr(model, 'generation_head', getattr(model, 'gen_head', None))
+                if model_head:
+                    new_bias = model_head.bias.data.clone()
+                    new_bias[:min_vocab] = old_bias[:min_vocab]
+                    state_dict[head_bias_key] = new_bias
 
     # Load weights
     try:
-        model.load_state_dict(state_dict, strict=False)
+        msg = model.load_state_dict(state_dict, strict=False)
+        if msg.missing_keys:
+            print(f"  ⚠ Missing keys during load: {len(msg.missing_keys)}")
+        if msg.unexpected_keys:
+            print(f"  ⚠ Unexpected keys during load: {len(msg.unexpected_keys)}")
         print(f"✓ Model loaded from {path} (with vocab adaptation)")
     except Exception as e:
-        print(f"⚠ Strict loading failed, trying non-strict: {e}")
-        model.load_state_dict(state_dict, strict=False)
+        print(f"⚠ Loading failed: {e}")
         
     print(f"  - Mode: {mode}")
     print(f"  - Total parameters: {sum(p.numel() for p in model.parameters()):,}")
